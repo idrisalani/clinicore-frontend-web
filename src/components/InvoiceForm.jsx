@@ -14,6 +14,11 @@ const InvoiceForm = ({
 }) => {
   const [formData, setFormData] = useState({
     patient_id: patientId || '',
+    // ✅ NEW: Recipient Information
+    recipient_name: '',
+    recipient_email: '',
+    recipient_phone: '',
+    // ✅ END NEW
     consultation_id: '',
     doctor_id: '',
     invoice_date: new Date().toISOString().split('T')[0],
@@ -36,6 +41,11 @@ const InvoiceForm = ({
     if (invoice && mode === 'edit') {
       setFormData({
         patient_id: invoice.patient_id || '',
+        // ✅ NEW: Include recipient info in edit mode
+        recipient_name: invoice.recipient_name || '',
+        recipient_email: invoice.recipient_email || '',
+        recipient_phone: invoice.recipient_phone || '',
+        // ✅ END NEW
         consultation_id: invoice.consultation_id || '',
         doctor_id: invoice.doctor_id || '',
         invoice_date: invoice.invoice_date || new Date().toISOString().split('T')[0],
@@ -75,6 +85,14 @@ const InvoiceForm = ({
     if (!formData.patient_id) {
       newErrors.patient_id = 'Patient is required';
     }
+    // ✅ NEW: Validate recipient name
+    if (!formData.recipient_name) {
+      newErrors.recipient_name = 'Recipient name is required';
+    }
+    if (!formData.recipient_email) {
+      newErrors.recipient_email = 'Recipient email is required';
+    }
+    // ✅ END NEW
     if (!formData.invoice_date) {
       newErrors.invoice_date = 'Invoice date is required';
     }
@@ -131,6 +149,85 @@ const InvoiceForm = ({
           Generate billing invoice in Nigerian Naira (₦)
         </p>
       </div>
+
+      {/* ✅ NEW: Recipient Information Section */}
+      <div className="space-y-4 border rounded-lg p-4 bg-purple-50">
+        <h4 className="font-semibold text-gray-900">Recipient Information</h4>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Patient ID
+          </label>
+          <input
+            type="text"
+            name="patient_id"
+            value={formData.patient_id}
+            onChange={handleChange}
+            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500 ${
+              errors.patient_id ? 'border-red-500' : 'border-gray-300'
+            }`}
+            placeholder="Patient ID or reference"
+          />
+          {errors.patient_id && (
+            <p className="text-red-500 text-xs mt-1">{errors.patient_id}</p>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Recipient Name *
+          </label>
+          <input
+            type="text"
+            name="recipient_name"
+            value={formData.recipient_name}
+            onChange={handleChange}
+            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500 ${
+              errors.recipient_name ? 'border-red-500' : 'border-gray-300'
+            }`}
+            placeholder="e.g., Mr Ahmed Hassan"
+          />
+          {errors.recipient_name && (
+            <p className="text-red-500 text-xs mt-1">{errors.recipient_name}</p>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Recipient Email *
+            </label>
+            <input
+              type="email"
+              name="recipient_email"
+              value={formData.recipient_email}
+              onChange={handleChange}
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500 ${
+                errors.recipient_email ? 'border-red-500' : 'border-gray-300'
+              }`}
+              placeholder="e.g., ahmed@example.com"
+            />
+            {errors.recipient_email && (
+              <p className="text-red-500 text-xs mt-1">{errors.recipient_email}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Recipient Phone
+            </label>
+            <input
+              type="tel"
+              name="recipient_phone"
+              value={formData.recipient_phone}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+              placeholder="+234-XXX-XXX-XXXX"
+            />
+          </div>
+        </div>
+      </div>
+      {/* ✅ END NEW: Recipient Information Section */}
 
       {/* Invoice Details */}
       <div className="space-y-4 border rounded-lg p-4 bg-blue-50">
