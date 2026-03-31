@@ -65,7 +65,7 @@ const ConsultationsPage = () => {
   useEffect(() => {
     fetchConsultations(currentPage, searchQuery);
     fetchStats();
-  }, [currentPage]);
+  }, [searchQuery]);
 
   // Handle Search
   const handleSearch = useCallback(

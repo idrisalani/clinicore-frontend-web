@@ -67,7 +67,7 @@ const AppointmentsPage = () => {
   useEffect(() => {
     fetchAppointments(currentPage, statusFilter, searchQuery);
     fetchStats();
-  }, [currentPage, statusFilter]);
+  }, [searchQuery]);
 
   // Handle Search
   const handleSearch = useCallback(

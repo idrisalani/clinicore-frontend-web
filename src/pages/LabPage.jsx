@@ -67,7 +67,7 @@ const LabPage = () => {
   useEffect(() => {
     fetchLabOrders(currentPage);
     fetchStats();
-  }, [currentPage]);
+  }, [searchQuery]);
 
   // Handle Search
   const handleSearch = useCallback(
@@ -100,7 +100,7 @@ const LabPage = () => {
   };
 
   // Handle Edit Order
-  const handleEditOrder = (orderId) => {
+  const _handleEditOrder = (orderId) => {
     const order = labOrders.find(o => o.lab_order_id === orderId);
     setSelectedOrder(order);
     setModalMode('edit');
@@ -116,7 +116,7 @@ const LabPage = () => {
   };
 
   // Handle Delete Order
-  const handleDeleteOrder = async (orderId) => {
+  const _handleDeleteOrder = async (orderId) => {
     if (!window.confirm('Are you sure you want to delete this lab order?')) {
       return;
     }

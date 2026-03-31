@@ -46,13 +46,6 @@ const AppointmentForm = ({
     }
   }, [appointment, mode]);
 
-  // Load available slots when date/doctor changes
-  useEffect(() => {
-    if (formData.appointment_date && formData.doctor_id && mode === 'add') {
-      loadAvailableSlots();
-    }
-  }, [formData.appointment_date, formData.doctor_id, mode]);
-
   const loadAvailableSlots = async () => {
     try {
       setLoadingSlots(true);
@@ -67,6 +60,14 @@ const AppointmentForm = ({
       setLoadingSlots(false);
     }
   };
+
+  // Load available slots when date/doctor changes
+  useEffect(() => {
+    if (formData.appointment_date && formData.doctor_id && mode === 'add') {
+      loadAvailableSlots();
+    }
+  }, [loadAvailableSlots]);
+
 
   // Validate form
   const validateForm = () => {
