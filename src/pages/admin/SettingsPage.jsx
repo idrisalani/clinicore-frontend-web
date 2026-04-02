@@ -3,7 +3,7 @@
 // File: frontend-web/src/pages/admin/SettingsPage.jsx
 // ============================================
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useAdmin } from '../../hooks/useAdmin';
 import { Save, Plus, Trash2 } from 'lucide-react';
 
@@ -11,19 +11,20 @@ export default function SettingsPage() {
   const [newSetting, setNewSetting] = useState({ key: '', value: '', type: 'string' });
   const [editingSetting, setEditingSetting] = useState(null);
   const [editValue, setEditValue] = useState('');
-  const { settings, loading, fetchSettings, getSetting, updateSetting, deleteSetting } = useAdmin();
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const { settings, loading, fetchSettings, updateSetting, deleteSetting } = useAdmin();
 
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
-  const loadSettings = async () => {
+  const loadSettings = useCallback(async () => {
     try {
       await fetchSettings();
     } catch (err) {
-      alert('Failed to load settings: ' + err.message);
+      console.error('Failed to load settings:', err);
     }
-  };
+  }, [fetchSettings]);
+
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
 
   const handleAddSetting = async () => {
     if (!newSetting.key.trim() || !newSetting.value.trim()) {
@@ -51,19 +52,49 @@ export default function SettingsPage() {
   };
 
   const handleDeleteSetting = async (key) => {
-    if (confirm(`Are you sure you want to delete this setting?`)) {
-      try {
-        await deleteSetting(key);
-        await loadSettings();
-      } catch (err) {
-        alert('Failed to delete setting: ' + err.message);
-      }
+    setDeleteConfirm(key);
+  };
+
+  const confirmDelete = async () => {
+    try {
+      await deleteSetting(deleteConfirm);
+      await loadSettings();
+      setDeleteConfirm(null);
+    } catch (err) {
+      alert('Failed to delete setting: ' + err.message);
+      setDeleteConfirm(null);
     }
   };
 
   return (
     <div>
       <h2 className="text-3xl font-bold mb-6">System Settings</h2>
+
+      {/* Delete Confirmation Dialog */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full mx-4">
+            <h3 className="text-xl font-bold mb-4">Delete Setting?</h3>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete this setting?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="flex-1 px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add New Setting */}
       <div className="bg-white rounded-lg shadow p-6 mb-6 border border-gray-200">
