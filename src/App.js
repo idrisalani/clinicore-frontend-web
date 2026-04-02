@@ -1,9 +1,15 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import PrivateRoute from './components/PrivateRoute';
 import Sidebar from './components/Sidebar';
+import RoleGuard from './components/RoleGuard';
+
+// Public
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+
+// Core modules
 import DashboardPage from './pages/DashboardPage';
 import PatientsPage from './pages/PatientsPage';
 import PatientDetailPage from './pages/PatientDetailPage';
@@ -13,155 +19,108 @@ import LabPage from './pages/LabPage';
 import PharmacyPage from './pages/PharmacyPage';
 import BillingPage from './pages/BillingPage';
 
-/**
- * Main App Component with Professional Routing & UI
- * Landing Page + Sidebar Navigation + All Features
- * 
- * Phases:
- * Phase 0-1: Auth
- * Phase 2: Patients
- * Phase 3: Appointments
- * Phase 4: Consultations
- * Phase 5: Lab
- * Phase 6: Pharmacy
- * Phase 7: Billing
- */
+// Admin pages
+import AdminDashboard from './pages/admin/AdminDashboard';
+import UsersPage from './pages/admin/UsersPage';
+import RolesPage from './pages/admin/RolesPage';
+import PermissionsPage from './pages/admin/PermissionsPage';
+import ActivityLogsPage from './pages/admin/ActivityLogsPage';
+import SettingsPage from './pages/admin/SettingsPage';
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+const readStoredUser = () => {
+  try {
+    const stored = localStorage.getItem('clinicore_user');
+    if (!stored || stored === 'null' || stored === 'undefined') return { role: '', name: '' };
+    const u = JSON.parse(stored);
+    const userData = u?.user || u;
+    return {
+      role: userData?.role || userData?.role_name || '',
+      name: userData?.full_name || userData?.name || userData?.username || '',
+    };
+  } catch {
+    return { role: '', name: '' };
+  }
+};
+
+// ── AppLayout ─────────────────────────────────────────────────────────────────
+
+const AppLayout = ({ children }) => {
+  const [userData, setUserData] = useState(readStoredUser);
+
+  useEffect(() => {
+    setUserData(readStoredUser());
+    const refresh = () => setUserData(readStoredUser());
+    window.addEventListener('storage', refresh);
+    window.addEventListener('clinicore_user_saved', refresh);
+    return () => {
+      window.removeEventListener('storage', refresh);
+      window.removeEventListener('clinicore_user_saved', refresh);
+    };
+  }, []);
+
+  return (
+    <div className="flex h-screen bg-gray-50">
+      <Sidebar userRole={userData.role} userName={userData.name} />
+      <main className="flex-1 overflow-auto">{children}</main>
+    </div>
+  );
+};
+
+// ── Route helpers ─────────────────────────────────────────────────────────────
+
+/** Standard protected route */
+const Protected = ({ children }) => (
+  <PrivateRoute>
+    <AppLayout>{children}</AppLayout>
+  </PrivateRoute>
+);
+
+/** Admin-only protected route — shows AccessDenied for non-admins */
+const AdminOnly = ({ children }) => (
+  <PrivateRoute>
+    <AppLayout>
+      <RoleGuard allowedRoles={['admin']}>
+        {children}
+      </RoleGuard>
+    </AppLayout>
+  </PrivateRoute>
+);
+
+// ── App ───────────────────────────────────────────────────────────────────────
+
 function App() {
   return (
     <Router>
       <Routes>
-        {/* PUBLIC ROUTES */}
 
-        {/* Landing Page - Homepage for non-authenticated users */}
-        <Route path="/" element={<LandingPage />} />
+        {/* PUBLIC */}
+        <Route path="/"         element={<LandingPage />} />
+        <Route path="/login"    element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
 
-        {/* Login Page */}
-        <Route path="/login" element={<LoginPage />} />
+        {/* CORE MODULES — any authenticated user */}
+        <Route path="/dashboard"     element={<Protected><DashboardPage /></Protected>} />
+        <Route path="/patients"      element={<Protected><PatientsPage /></Protected>} />
+        <Route path="/patients/:id"  element={<Protected><PatientDetailPage /></Protected>} />
+        <Route path="/appointments"  element={<Protected><AppointmentsPage /></Protected>} />
+        <Route path="/consultations" element={<Protected><ConsultationsPage /></Protected>} />
+        <Route path="/lab"           element={<Protected><LabPage /></Protected>} />
+        <Route path="/pharmacy"      element={<Protected><PharmacyPage /></Protected>} />
+        <Route path="/billing"       element={<Protected><BillingPage /></Protected>} />
 
-        {/* PROTECTED ROUTES WITH SIDEBAR */}
+        {/* ADMIN ROUTES — admin role only, graceful 403 for others */}
+        <Route path="/admin"             element={<AdminOnly><AdminDashboard /></AdminOnly>} />
+        <Route path="/admin/users"       element={<AdminOnly><UsersPage /></AdminOnly>} />
+        <Route path="/admin/roles"       element={<AdminOnly><RolesPage /></AdminOnly>} />
+        <Route path="/admin/permissions" element={<AdminOnly><PermissionsPage /></AdminOnly>} />
+        <Route path="/admin/activity"    element={<AdminOnly><ActivityLogsPage /></AdminOnly>} />
+        <Route path="/admin/settings"    element={<AdminOnly><SettingsPage /></AdminOnly>} />
 
-        {/* Dashboard */}
-        <Route
-          path="/dashboard"
-          element={
-            <PrivateRoute>
-              <div className="flex h-screen bg-gray-50">
-                <Sidebar />
-                <main className="flex-1 overflow-auto">
-                  <DashboardPage />
-                </main>
-              </div>
-            </PrivateRoute>
-          }
-        />
+        {/* CATCH-ALL */}
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
 
-        {/* PHASE 2: Patients Management */}
-        <Route
-          path="/patients"
-          element={
-            <PrivateRoute>
-              <div className="flex h-screen bg-gray-50">
-                <Sidebar />
-                <main className="flex-1 overflow-auto">
-                  <PatientsPage />
-                </main>
-              </div>
-            </PrivateRoute>
-          }
-        />
-
-        {/* PHASE 2.5.1: Patient Detail Page */}
-        <Route
-          path="/patients/:id"
-          element={
-            <PrivateRoute>
-              <div className="flex h-screen bg-gray-50">
-                <Sidebar />
-                <main className="flex-1 overflow-auto">
-                  <PatientDetailPage />
-                </main>
-              </div>
-            </PrivateRoute>
-          }
-        />
-
-        {/* PHASE 3: Appointments Management */}
-        <Route
-          path="/appointments"
-          element={
-            <PrivateRoute>
-              <div className="flex h-screen bg-gray-50">
-                <Sidebar />
-                <main className="flex-1 overflow-auto">
-                  <AppointmentsPage />
-                </main>
-              </div>
-            </PrivateRoute>
-          }
-        />
-
-        {/* PHASE 4: Consultations & Clinical Notes */}
-        <Route
-          path="/consultations"
-          element={
-            <PrivateRoute>
-              <div className="flex h-screen bg-gray-50">
-                <Sidebar />
-                <main className="flex-1 overflow-auto">
-                  <ConsultationsPage />
-                </main>
-              </div>
-            </PrivateRoute>
-          }
-        />
-
-        {/* PHASE 5: Laboratory Tests */}
-        <Route
-          path="/lab"
-          element={
-            <PrivateRoute>
-              <div className="flex h-screen bg-gray-50">
-                <Sidebar />
-                <main className="flex-1 overflow-auto">
-                  <LabPage />
-                </main>
-              </div>
-            </PrivateRoute>
-          }
-        />
-
-        {/* PHASE 6: Pharmacy & Prescriptions */}
-        <Route
-          path="/pharmacy"
-          element={
-            <PrivateRoute>
-              <div className="flex h-screen bg-gray-50">
-                <Sidebar />
-                <main className="flex-1 overflow-auto">
-                  <PharmacyPage />
-                </main>
-              </div>
-            </PrivateRoute>
-          }
-        />
-
-        {/* PHASE 7: Billing & Invoicing */}
-        <Route
-          path="/billing"
-          element={
-            <PrivateRoute>
-              <div className="flex h-screen bg-gray-50">
-                <Sidebar />
-                <main className="flex-1 overflow-auto">
-                  <BillingPage />
-                </main>
-              </div>
-            </PrivateRoute>
-          }
-        />
-
-        {/* Redirect root to landing page */}
-        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );

@@ -7,15 +7,36 @@ export const authService = {
   },
 
   login: async (email, password) => {
+    // Step 1: Get tokens
     const response = await api.post('/auth/login', { email, password });
-    
-    if (response.data.accessToken) {
-      localStorage.setItem('clinicore_access_token', response.data.accessToken);
-      localStorage.setItem('clinicore_refresh_token', response.data.refreshToken);
-      localStorage.setItem('clinicore_user', JSON.stringify(response.data.user));
+    const data = response.data;
+
+    const accessToken  = data.accessToken  || data.access_token  || data.token;
+    const refreshToken = data.refreshToken || data.refresh_token || '';
+
+    if (accessToken) {
+      localStorage.setItem('clinicore_access_token',  accessToken);
+      localStorage.setItem('clinicore_refresh_token', refreshToken);
+
+      // Step 2: Fetch full user profile (role, name, etc.)
+      try {
+        const userResponse = await api.get('/users/me', {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        });
+        const user = userResponse.data?.user || userResponse.data;
+        localStorage.setItem('clinicore_user', JSON.stringify(user));
+
+        // Step 3: Notify AppLayout to re-read localStorage and update sidebar
+        window.dispatchEvent(new Event('clinicore_user_saved'));
+
+        console.log('[authService] User saved:', user?.full_name, '| Role:', user?.role);
+      } catch (err) {
+        console.warn('[authService] Could not fetch user profile:', err.message);
+        localStorage.setItem('clinicore_user', 'null');
+      }
     }
 
-    return response.data;
+    return data;
   },
 
   logout: () => {
@@ -25,15 +46,16 @@ export const authService = {
   },
 
   getCurrentUser: () => {
-    const user = localStorage.getItem('clinicore_user');
-    return user ? JSON.parse(user) : null;
+    try {
+      const user = localStorage.getItem('clinicore_user');
+      if (!user || user === 'null' || user === 'undefined') return null;
+      return JSON.parse(user);
+    } catch {
+      return null;
+    }
   },
 
-  getAccessToken: () => {
-    return localStorage.getItem('clinicore_access_token');
-  },
+  getAccessToken: () => localStorage.getItem('clinicore_access_token'),
 
-  isAuthenticated: () => {
-    return !!localStorage.getItem('clinicore_access_token');
-  },
+  isAuthenticated: () => !!localStorage.getItem('clinicore_access_token'),
 };

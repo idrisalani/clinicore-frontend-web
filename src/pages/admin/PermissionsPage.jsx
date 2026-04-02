@@ -1,131 +1,259 @@
 // ============================================
-// PermissionsPage Component - Permission Management
+// PermissionsPage - Professional Permission Management
 // File: frontend-web/src/pages/admin/PermissionsPage.jsx
 // ============================================
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAdmin } from '../../hooks/useAdmin';
-import { Save } from 'lucide-react';
+import {
+  Save, Shield, Check, AlertTriangle, Loader,
+  RefreshCw, ChevronRight, RotateCcw, Lock,
+} from 'lucide-react';
 
+// ── Module icon map ───────────────────────────────────────────────────────────
+const MODULE_COLORS = {
+  patients:      { bg: 'bg-blue-50',   text: 'text-blue-600',   border: 'border-blue-100'   },
+  appointments:  { bg: 'bg-green-50',  text: 'text-green-600',  border: 'border-green-100'  },
+  consultations: { bg: 'bg-teal-50',   text: 'text-teal-600',   border: 'border-teal-100'   },
+  lab:           { bg: 'bg-orange-50', text: 'text-orange-600', border: 'border-orange-100' },
+  pharmacy:      { bg: 'bg-purple-50', text: 'text-purple-600', border: 'border-purple-100' },
+  billing:       { bg: 'bg-rose-50',   text: 'text-rose-600',   border: 'border-rose-100'   },
+  admin:         { bg: 'bg-red-50',    text: 'text-red-600',    border: 'border-red-100'    },
+  dashboard:     { bg: 'bg-indigo-50', text: 'text-indigo-600', border: 'border-indigo-100' },
+};
+const defaultModuleColor = { bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-100' };
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+const Toast = ({ toast }) => {
+  if (!toast) return null;
+  return (
+    <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-xl text-white text-sm font-medium ${
+      toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'
+    }`}>
+      {toast.type === 'success' ? <Check className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+      {toast.message}
+    </div>
+  );
+};
+
+// ── Permission Checkbox ───────────────────────────────────────────────────────
+const PermCheckbox = ({ perm, checked, onChange }) => (
+  <label className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+    checked
+      ? 'bg-blue-50 border-blue-200'
+      : 'bg-white border-gray-100 hover:border-gray-200 hover:bg-gray-50'
+  }`}>
+    <div className={`mt-0.5 w-4 h-4 rounded border-2 flex-shrink-0 flex items-center justify-center transition-all ${
+      checked ? 'bg-blue-600 border-blue-600' : 'border-gray-300'
+    }`}>
+      {checked && <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />}
+    </div>
+    <input type="checkbox" checked={checked} onChange={onChange} className="sr-only" />
+    <div className="min-w-0">
+      <p className={`text-xs font-bold truncate ${checked ? 'text-blue-800' : 'text-gray-700'}`}>
+        {perm.name}
+      </p>
+      {perm.description && (
+        <p className="text-[10px] text-gray-400 mt-0.5 line-clamp-2">{perm.description}</p>
+      )}
+    </div>
+  </label>
+);
+
+// ── Module Section ────────────────────────────────────────────────────────────
+const ModuleSection = ({ resource, perms, selected, onToggle, onToggleAll }) => {
+  const c = MODULE_COLORS[resource?.toLowerCase()] || defaultModuleColor;
+  const allSelected = perms.every(p => selected.includes(p.permission_id));
+
+  return (
+    <div className="border border-gray-100 rounded-2xl overflow-hidden">
+      <div className={`flex items-center justify-between px-4 py-3 ${c.bg} border-b ${c.border}`}>
+        <div className="flex items-center gap-2">
+          <span className={`text-xs font-bold uppercase tracking-wider ${c.text}`}>{resource}</span>
+          <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${c.bg} ${c.text} border ${c.border}`}>
+            {perms.filter(p => selected.includes(p.permission_id)).length}/{perms.length}
+          </span>
+        </div>
+        <button
+          onClick={() => onToggleAll(perms, allSelected)}
+          className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border transition-all ${
+            allSelected
+              ? `${c.text} border-current hover:opacity-70`
+              : 'text-gray-500 border-gray-200 hover:border-gray-300'
+          }`}
+        >
+          {allSelected ? 'Deselect All' : 'Select All'}
+        </button>
+      </div>
+      <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {perms.map(perm => (
+          <PermCheckbox
+            key={perm.permission_id}
+            perm={perm}
+            checked={selected.includes(perm.permission_id)}
+            onChange={() => onToggle(perm.permission_id)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ── Main Component ────────────────────────────────────────────────────────────
 export default function PermissionsPage() {
-  const [roles, setRoles] = useState([]);
-  const [selectedRole, setSelectedRole] = useState(null);
-  const [permissions, setPermissions] = useState([]);
-  const [rolePermissions, setRolePermissions] = useState([]);
-  const [selectedPermissions, setSelectedPermissions] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [roles, setRoles]                       = useState([]);
+  const [selectedRole, setSelectedRole]         = useState(null);
+  const [permissions, setPermissions]           = useState([]);
+  const [savedPermissions, setSavedPermissions] = useState([]);
+  const [selected, setSelected]                 = useState([]);
+  const [loading, setLoading]                   = useState(false);
+  const [saving, setSaving]                     = useState(false);
+  const [toast, setToast]                       = useState(null);
+  const [error, setError]                       = useState('');
 
   const { fetchRoles, fetchPermissions, getRolePermissions, assignPermissionsToRole } = useAdmin();
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  };
 
   const loadInitialData = useCallback(async () => {
     try {
       setLoading(true);
-      const [rolesData, permissionsData] = await Promise.all([
-        fetchRoles(),
-        fetchPermissions()
-      ]);
-      setRoles(rolesData);
-      setPermissions(permissionsData);
-      
-      // Load permissions for first role
-      if (rolesData.length > 0) {
-        const firstRole = rolesData[0];
-        setSelectedRole(firstRole);
-        const perms = await getRolePermissions(firstRole.role_id);
-        setRolePermissions(perms);
-        setSelectedPermissions(perms.map(p => p.permission_id));
+      setError('');
+      const [rolesData, permsData] = await Promise.all([fetchRoles(), fetchPermissions()]);
+      setRoles(rolesData || []);
+      setPermissions(permsData || []);
+      if (rolesData?.length > 0) {
+        const first = rolesData[0];
+        setSelectedRole(first);
+        const rp = await getRolePermissions(first.role_id);
+        const ids = (rp || []).map(p => p.permission_id);
+        setSavedPermissions(ids);
+        setSelected(ids);
       }
     } catch (err) {
-      console.error('Failed to load data:', err);
+      setError(err?.response?.status === 403 ? 'Admin access required.' : 'Failed to load data.');
     } finally {
       setLoading(false);
     }
   }, [fetchRoles, fetchPermissions, getRolePermissions]);
 
-  useEffect(() => {
-    loadInitialData();
-  }, [loadInitialData]);
+  useEffect(() => { loadInitialData(); }, [loadInitialData]);
 
-  const loadRolePermissions = async (roleId) => {
+  const handleSelectRole = async (role) => {
     try {
       setLoading(true);
-      const role = roles.find(r => r.role_id === roleId);
       setSelectedRole(role);
-      const perms = await getRolePermissions(roleId);
-      setRolePermissions(perms);
-      setSelectedPermissions(perms.map(p => p.permission_id));
-    } catch (err) {
-      alert('Failed to load permissions: ' + err.message);
+      const rp = await getRolePermissions(role.role_id);
+      const ids = (rp || []).map(p => p.permission_id);
+      setSavedPermissions(ids);
+      setSelected(ids);
+    } catch {
+      showToast('Failed to load permissions for this role.', 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  const handlePermissionToggle = (permissionId) => {
-    setSelectedPermissions(prev => {
-      if (prev.includes(permissionId)) {
-        return prev.filter(p => p !== permissionId);
-      } else {
-        return [...prev, permissionId];
-      }
-    });
+  const handleToggle = (id) => {
+    setSelected(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]);
+  };
+
+  const handleToggleAll = (perms, allSelected) => {
+    const ids = perms.map(p => p.permission_id);
+    setSelected(prev =>
+      allSelected ? prev.filter(id => !ids.includes(id)) : [...new Set([...prev, ...ids])]
+    );
   };
 
   const handleSave = async () => {
     if (!selectedRole) return;
-
     try {
       setSaving(true);
-      await assignPermissionsToRole(selectedRole.role_id, selectedPermissions);
-      alert('Permissions updated successfully');
-      loadRolePermissions(selectedRole.role_id);
+      await assignPermissionsToRole(selectedRole.role_id, selected);
+      setSavedPermissions([...selected]);
+      showToast(`Permissions saved for "${selectedRole.role_name}"`);
     } catch (err) {
-      alert('Failed to update permissions: ' + err.message);
+      showToast(err?.response?.data?.error || 'Failed to save permissions.', 'error');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleReset = () => {
-    setSelectedPermissions(rolePermissions.map(p => p.permission_id));
-  };
+  const hasChanges = JSON.stringify([...selected].sort()) !== JSON.stringify([...savedPermissions].sort());
 
-  const groupedPermissions = permissions.reduce((acc, perm) => {
-    if (!acc[perm.resource]) {
-      acc[perm.resource] = [];
-    }
-    acc[perm.resource].push(perm);
+  const grouped = permissions.reduce((acc, p) => {
+    const key = p.resource || p.module || 'other';
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(p);
     return acc;
   }, {});
 
-  const hasChanges = JSON.stringify(selectedPermissions.sort()) !==
-    JSON.stringify(rolePermissions.map(p => p.permission_id).sort());
+  const ROLE_COLORS = {
+    admin: 'bg-purple-600', doctor: 'bg-blue-600', nurse: 'bg-teal-600',
+    pharmacist: 'bg-emerald-600', lab_technician: 'bg-orange-600',
+    receptionist: 'bg-pink-600', patient: 'bg-indigo-600',
+  };
 
   return (
-    <div>
-      <h2 className="text-3xl font-bold mb-6">Permissions Management</h2>
+    <div className="space-y-5">
+      <Toast toast={toast} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Permissions Management</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Configure access control per role</p>
+        </div>
+        <button onClick={loadInitialData}
+          className="p-2.5 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 transition-all self-start">
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+        </button>
+      </div>
+
+      {/* Error */}
+      {error && (
+        <div className="flex items-center gap-3 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
+          <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0" />
+          <p className="text-sm text-red-700">{error}</p>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-5">
+
         {/* Role Selector */}
         <div className="lg:col-span-1">
-          <div className="bg-white rounded-lg shadow p-4 border border-gray-200 h-fit">
-            <h3 className="text-lg font-bold mb-4">Select Role</h3>
-            <div className="space-y-2">
-              {roles?.map(role => (
-                <button
-                  key={role.role_id}
-                  onClick={() => loadRolePermissions(role.role_id)}
-                  className={`w-full text-left px-4 py-2 rounded transition ${
-                    selectedRole?.role_id === role.role_id
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                  }`}
-                >
-                  <p className="font-semibold">{role.role_name}</p>
-                  <p className="text-xs opacity-75">Level {role.level}</p>
-                </button>
-              ))}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-50">
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Select Role</p>
+            </div>
+            <div className="p-3 space-y-1.5">
+              {roles.map(role => {
+                const isActive = selectedRole?.role_id === role.role_id;
+                const color = ROLE_COLORS[role.role_name?.toLowerCase()] || 'bg-gray-600';
+                return (
+                  <button
+                    key={role.role_id}
+                    onClick={() => handleSelectRole(role)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all ${
+                      isActive ? 'bg-gray-900 text-white' : 'hover:bg-gray-50 text-gray-700'
+                    }`}
+                  >
+                    <div className={`w-7 h-7 rounded-lg ${color} flex items-center justify-center flex-shrink-0`}>
+                      <Shield className="w-3.5 h-3.5 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate">{role.role_name}</p>
+                      <p className={`text-[10px] ${isActive ? 'text-white/60' : 'text-gray-400'}`}>
+                        Level {role.level}
+                      </p>
+                    </div>
+                    {isActive && <ChevronRight className="w-4 h-4 opacity-60" />}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -133,70 +261,63 @@ export default function PermissionsPage() {
         {/* Permissions Matrix */}
         <div className="lg:col-span-3">
           {loading ? (
-            <div className="text-center py-12">Loading...</div>
+            <div className="flex items-center justify-center py-16 bg-white rounded-2xl border border-gray-100">
+              <div className="text-center">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+                <p className="mt-3 text-sm text-gray-500">Loading permissions...</p>
+              </div>
+            </div>
           ) : selectedRole ? (
-            <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
-              <div className="flex justify-between items-center mb-4">
+            <div className="space-y-4">
+              {/* Save bar */}
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 flex items-center justify-between">
                 <div>
-                  <h3 className="text-2xl font-bold">{selectedRole.role_name}</h3>
-                  <p className="text-sm text-gray-600">{selectedRole.description}</p>
+                  <p className="font-bold text-gray-800">{selectedRole.role_name}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {selected.length} of {permissions.length} permissions granted
+                    {hasChanges && <span className="ml-2 text-amber-500 font-semibold">· Unsaved changes</span>}
+                  </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex items-center gap-2">
                   {hasChanges && (
-                    <button
-                      onClick={handleReset}
-                      className="px-4 py-2 text-gray-700 border border-gray-300 rounded hover:bg-gray-50"
-                    >
-                      Reset
+                    <button onClick={() => setSelected([...savedPermissions])}
+                      className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all">
+                      <RotateCcw className="w-3.5 h-3.5" /> Reset
                     </button>
                   )}
                   <button
                     onClick={handleSave}
                     disabled={!hasChanges || saving}
-                    className={`flex items-center gap-2 px-4 py-2 rounded text-white transition ${
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white transition-all ${
                       hasChanges && !saving
-                        ? 'bg-blue-600 hover:bg-blue-700'
-                        : 'bg-gray-400 cursor-not-allowed'
+                        ? 'bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-200'
+                        : 'bg-gray-300 cursor-not-allowed'
                     }`}
                   >
-                    <Save size={18} />
+                    {saving ? <Loader className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                     {saving ? 'Saving...' : 'Save Changes'}
                   </button>
                 </div>
               </div>
 
-              <div className="space-y-6">
-                {Object.entries(groupedPermissions).map(([resource, perms]) => (
-                  <div key={resource} className="border-t pt-6 first:border-t-0 first:pt-0">
-                    <h4 className="text-lg font-semibold text-gray-800 mb-3 capitalize">
-                      {resource}
-                    </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {perms.map(perm => (
-                        <label
-                          key={perm.permission_id}
-                          className="flex items-start gap-3 p-3 rounded border border-gray-200 hover:bg-gray-50 cursor-pointer transition"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selectedPermissions.includes(perm.permission_id)}
-                            onChange={() => handlePermissionToggle(perm.permission_id)}
-                            className="mt-1 w-4 h-4 text-blue-600 rounded"
-                          />
-                          <div>
-                            <p className="font-medium text-gray-800">{perm.name}</p>
-                            <p className="text-xs text-gray-600">{perm.description}</p>
-                          </div>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              {/* Module sections */}
+              {Object.entries(grouped).map(([resource, perms]) => (
+                <ModuleSection
+                  key={resource}
+                  resource={resource}
+                  perms={perms}
+                  selected={selected}
+                  onToggle={handleToggle}
+                  onToggleAll={handleToggleAll}
+                />
+              ))}
             </div>
           ) : (
-            <div className="text-center py-12 text-gray-500">
-              Select a role to manage permissions
+            <div className="flex items-center justify-center py-16 bg-white rounded-2xl border border-gray-100">
+              <div className="text-center">
+                <Lock className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500 font-medium">Select a role to manage permissions</p>
+              </div>
             </div>
           )}
         </div>

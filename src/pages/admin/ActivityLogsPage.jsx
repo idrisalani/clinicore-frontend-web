@@ -1,252 +1,380 @@
 // ============================================
-// ActivityLogsPage Component - Activity Logs
+// ActivityLogsPage - Professional Activity Logs
 // File: frontend-web/src/pages/admin/ActivityLogsPage.jsx
 // ============================================
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAdmin } from '../../hooks/useAdmin';
-import { Trash2, Eye, X } from 'lucide-react';
+import {
+  Trash2, Eye, X, Search, RefreshCw, ChevronLeft,
+  ChevronRight, AlertTriangle, Activity, Clock, Check, Loader,
+} from 'lucide-react';
 
+const PAGE_SIZE = 50;
+
+// ── Action Badge ──────────────────────────────────────────────────────────────
+const ActionBadge = ({ action }) => {
+  const map = {
+    CREATE: 'bg-green-100 text-green-700 border-green-200',
+    UPDATE: 'bg-blue-100 text-blue-700 border-blue-200',
+    DELETE: 'bg-red-100 text-red-700 border-red-200',
+    LOGIN:  'bg-purple-100 text-purple-700 border-purple-200',
+    VIEW:   'bg-gray-100 text-gray-600 border-gray-200',
+    LIST:   'bg-indigo-100 text-indigo-700 border-indigo-200',
+  };
+  const key = (action || '').toUpperCase().split('_')[0];
+  const cls = map[key] || map.VIEW;
+  return (
+    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${cls}`}>
+      {action || '—'}
+    </span>
+  );
+};
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+const Toast = ({ toast }) => {
+  if (!toast) return null;
+  return (
+    <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-xl text-white text-sm font-medium ${
+      toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'
+    }`}>
+      {toast.type === 'success' ? <Check className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+      {toast.message}
+    </div>
+  );
+};
+
+// ── Log Detail Modal ──────────────────────────────────────────────────────────
+const LogDetailModal = ({ log, onClose }) => {
+  if (!log) return null;
+  const fields = [
+    { label: 'Log ID',      value: log.log_id },
+    { label: 'User',        value: log.username || 'System' },
+    { label: 'Action',      value: log.action },
+    { label: 'Resource',    value: log.resource_type },
+    { label: 'Resource ID', value: log.resource_id || '—' },
+    { label: 'IP Address',  value: log.ip_address || '—' },
+    { label: 'Timestamp',   value: log.created_at ? new Date(log.created_at).toLocaleString() : '—' },
+  ];
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+        <div className="h-1 bg-gradient-to-r from-blue-400 to-indigo-500" />
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-blue-50 rounded-lg flex items-center justify-center">
+              <Eye className="w-4 h-4 text-blue-600" />
+            </div>
+            <h3 className="font-bold text-gray-800">Log Details</h3>
+          </div>
+          <button onClick={onClose}
+            className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
+            <X className="w-4 h-4 text-gray-500" />
+          </button>
+        </div>
+        <div className="p-6">
+          <div className="grid grid-cols-2 gap-4">
+            {fields.map(f => (
+              <div key={f.label} className="bg-gray-50 rounded-xl p-3">
+                <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1">{f.label}</p>
+                <p className="text-sm font-semibold text-gray-800 break-all">{f.value ?? '—'}</p>
+              </div>
+            ))}
+          </div>
+          {log.details && (
+            <div className="mt-4 bg-gray-50 rounded-xl p-3">
+              <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1">Details</p>
+              <pre className="text-xs text-gray-700 overflow-auto max-h-32 whitespace-pre-wrap">
+                {typeof log.details === 'object' ? JSON.stringify(log.details, null, 2) : log.details}
+              </pre>
+            </div>
+          )}
+        </div>
+        <div className="px-6 pb-6">
+          <button onClick={onClose}
+            className="w-full py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold transition-all">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Clear Logs Modal ──────────────────────────────────────────────────────────
+const ClearLogsModal = ({ onConfirm, onCancel, loading }) => {
+  const [days, setDays] = useState(90);
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+        <div className="h-1 bg-gradient-to-r from-red-400 to-rose-500" />
+        <div className="p-6 text-center">
+          <div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <Trash2 className="w-7 h-7 text-red-500" />
+          </div>
+          <h3 className="text-lg font-bold text-gray-800 mb-1">Clear Old Logs</h3>
+          <p className="text-sm text-gray-500 mb-5">
+            Delete all activity logs older than the specified number of days.
+          </p>
+          <div className="mb-5 text-left">
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
+              Days old (1–365)
+            </label>
+            <input
+              type="number" value={days} min={1} max={365}
+              onChange={e => setDays(parseInt(e.target.value) || 90)}
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-red-400 focus:ring-2 focus:ring-red-50"
+            />
+          </div>
+          <div className="flex gap-3">
+            <button onClick={onCancel} disabled={loading}
+              className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-all">
+              Cancel
+            </button>
+            <button onClick={() => onConfirm(days)} disabled={loading}
+              className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold flex items-center justify-center gap-2 transition-all">
+              {loading ? <Loader className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+              {loading ? 'Clearing...' : 'Clear Logs'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Main Component ────────────────────────────────────────────────────────────
 export default function ActivityLogsPage() {
-  const pageSize = 50;  // ✅ Define pageSize constant
-  const [currentPage, setCurrentPage] = useState(0);
+  const [page, setPage]               = useState(0);
   const [selectedLog, setSelectedLog] = useState(null);
-  const [showDetails, setShowDetails] = useState(false);
-  const [daysToDelete, setDaysToDelete] = useState(90);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showClear, setShowClear]     = useState(false);
+  const [clearLoading, setClearLoading] = useState(false);
+  const [search, setSearch]           = useState('');
+  const [actionFilter, setActionFilter] = useState('all');
+  const [toast, setToast]             = useState(null);
+  const [error, setError]             = useState('');
 
   const { activityLogs, loading, fetchActivityLogs, getActivityLogById, clearOldActivityLogs } = useAdmin();
 
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  };
+
   const loadLogs = useCallback(async () => {
     try {
-      const pageSize = 50;
-      await fetchActivityLogs(pageSize, currentPage * pageSize);
+      setError('');
+      await fetchActivityLogs(PAGE_SIZE, page * PAGE_SIZE);
     } catch (err) {
-      console.error('Failed to load logs:', err);
+      setError(err?.response?.status === 403
+        ? 'Admin access required to view activity logs.'
+        : 'Failed to load activity logs.');
     }
-  }, [currentPage, fetchActivityLogs]);
+  }, [page, fetchActivityLogs]);
 
-  useEffect(() => {
-    loadLogs();
-  }, [loadLogs]);
+  useEffect(() => { loadLogs(); }, [loadLogs]);
 
-  const handleViewDetails = async (log) => {
+  const handleView = async (log) => {
     try {
       const details = await getActivityLogById(log.log_id);
       setSelectedLog(details);
-      setShowDetails(true);
-    } catch (err) {
-      alert('Failed to load log details: ' + err.message);
+    } catch {
+      setSelectedLog(log); // fallback to row data
     }
   };
 
-  const handleClearLogs = async () => {
+  const handleClear = async (days) => {
+    setClearLoading(true);
     try {
-      await clearOldActivityLogs(daysToDelete);
-      alert('Old logs cleared successfully');
-      await loadLogs();
-      setShowDeleteDialog(false);
+      await clearOldActivityLogs(days);
+      showToast(`Logs older than ${days} days cleared successfully`);
+      setShowClear(false);
+      setPage(0);
+      loadLogs();
     } catch (err) {
-      alert('Failed to clear logs: ' + err.message);
+      showToast(err?.response?.data?.error || 'Failed to clear logs.', 'error');
+    } finally {
+      setClearLoading(false);
     }
   };
 
-  const getActionBadgeColor = (action) => {
-    const colors = {
-      'CREATE': 'bg-green-100 text-green-800',
-      'UPDATE': 'bg-blue-100 text-blue-800',
-      'DELETE': 'bg-red-100 text-red-800',
-      'VIEW': 'bg-gray-100 text-gray-800',
-      'LIST': 'bg-purple-100 text-purple-800',
-    };
-    return colors[action] || 'bg-gray-100 text-gray-800';
-  };
+  // Client-side filter
+  const filtered = (activityLogs || []).filter(log => {
+    const matchSearch = !search ||
+      log.username?.toLowerCase().includes(search.toLowerCase()) ||
+      log.action?.toLowerCase().includes(search.toLowerCase()) ||
+      log.resource_type?.toLowerCase().includes(search.toLowerCase());
+    const matchAction = actionFilter === 'all' ||
+      (log.action || '').toUpperCase().startsWith(actionFilter.toUpperCase());
+    return matchSearch && matchAction;
+  });
+
+  const actions = ['all', 'CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'VIEW'];
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-3xl font-bold">Activity Logs</h2>
-        <button
-          onClick={() => setShowDeleteDialog(true)}
-          className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
-        >
-          <Trash2 size={20} />
-          Clear Old Logs
-        </button>
+    <div className="space-y-5">
+      <Toast toast={toast} />
+      {selectedLog && <LogDetailModal log={selectedLog} onClose={() => setSelectedLog(null)} />}
+      {showClear && (
+        <ClearLogsModal
+          onConfirm={handleClear}
+          onCancel={() => setShowClear(false)}
+          loading={clearLoading}
+        />
+      )}
+
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Activity Logs</h1>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {filtered.length} entries · Page {page + 1}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={() => loadLogs()}
+            className="p-2.5 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 transition-all">
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+          <button onClick={() => setShowClear(true)}
+            className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm">
+            <Trash2 className="w-4 h-4" />
+            Clear Old Logs
+          </button>
+        </div>
       </div>
 
-      {/* Delete Dialog */}
-      {showDeleteDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full mx-4">
-            <h3 className="text-xl font-bold mb-4">Clear Old Activity Logs</h3>
-            <p className="text-gray-600 mb-4">
-              This will delete all activity logs older than the specified number of days.
+      {/* Error */}
+      {error && (
+        <div className="flex items-center gap-3 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
+          <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0" />
+          <p className="text-sm text-red-700">{error}</p>
+        </div>
+      )}
+
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input type="text" placeholder="Search by user, action or resource..."
+            value={search} onChange={e => setSearch(e.target.value)}
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-50" />
+          {search && (
+            <button onClick={() => setSearch('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+        <div className="flex gap-1.5 flex-wrap">
+          {actions.map(a => (
+            <button key={a} onClick={() => setActionFilter(a)}
+              className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${
+                actionFilter === a
+                  ? 'bg-slate-700 text-white border-slate-700'
+                  : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+              }`}>
+              {a === 'all' ? 'All' : a}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <div className="text-center">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600" />
+              <p className="mt-3 text-sm text-gray-500">Loading activity logs...</p>
+            </div>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="py-16 text-center">
+            <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+              <Activity className="w-7 h-7 text-gray-400" />
+            </div>
+            <p className="text-gray-500 font-medium">No activity logs found</p>
+            <p className="text-gray-400 text-sm mt-1">
+              {search || actionFilter !== 'all' ? 'Try adjusting your filters' : 'Activity will appear here as users interact with the system'}
             </p>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Days old
-              </label>
-              <input
-                type="number"
-                value={daysToDelete}
-                onChange={(e) => setDaysToDelete(parseInt(e.target.value))}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-                min="1"
-                max="365"
-              />
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowDeleteDialog(false)}
-                className="flex-1 px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleClearLogs}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-              >
-                Delete
-              </button>
-            </div>
           </div>
-        </div>
-      )}
-
-      {/* Details Dialog */}
-      {showDetails && selectedLog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-96 overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b p-6 flex justify-between items-center">
-              <h3 className="text-xl font-bold">Log Details</h3>
-              <button
-                onClick={() => setShowDetails(false)}
-                className="p-1 hover:bg-gray-100 rounded"
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <div className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-gray-600">Log ID</p>
-                  <p className="font-semibold">{selectedLog.log_id}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">User</p>
-                  <p className="font-semibold">{selectedLog.username || 'System'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Action</p>
-                  <p className="font-semibold">{selectedLog.action}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Resource</p>
-                  <p className="font-semibold">{selectedLog.resource_type}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">IP Address</p>
-                  <p className="font-semibold">{selectedLog.ip_address}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Timestamp</p>
-                  <p className="font-semibold">{new Date(selectedLog.created_at).toLocaleString()}</p>
-                </div>
-              </div>
-              {selectedLog.resource_id && (
-                <div>
-                  <p className="text-sm text-gray-600">Resource ID</p>
-                  <p className="font-semibold">{selectedLog.resource_id}</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {loading ? (
-        <div className="text-center py-12">Loading...</div>
-      ) : (
-        <>
-          {/* Logs Table */}
-          <div className="bg-white rounded-lg shadow overflow-x-auto border border-gray-200">
+        ) : (
+          <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-600">User</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-600">Action</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-600">Resource</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-600">IP Address</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-600">Timestamp</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-600">Actions</th>
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-100">
+                  <th className="px-5 py-3.5 text-left text-xs font-bold text-gray-500 uppercase tracking-wide">User</th>
+                  <th className="px-5 py-3.5 text-left text-xs font-bold text-gray-500 uppercase tracking-wide">Action</th>
+                  <th className="px-5 py-3.5 text-left text-xs font-bold text-gray-500 uppercase tracking-wide">Resource</th>
+                  <th className="px-5 py-3.5 text-left text-xs font-bold text-gray-500 uppercase tracking-wide">IP Address</th>
+                  <th className="px-5 py-3.5 text-left text-xs font-bold text-gray-500 uppercase tracking-wide">Timestamp</th>
+                  <th className="px-5 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wide">Details</th>
                 </tr>
               </thead>
-              <tbody className="divide-y">
-                {activityLogs?.length === 0 ? (
-                  <tr>
-                    <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
-                      No activity logs yet
+              <tbody className="divide-y divide-gray-50">
+                {filtered.map((log, idx) => (
+                  <tr key={log.log_id || idx} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600 flex-shrink-0">
+                          {(log.username || 'S').charAt(0).toUpperCase()}
+                        </div>
+                        <span className="text-sm font-medium text-gray-800">{log.username || 'System'}</span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-3.5"><ActionBadge action={log.action} /></td>
+                    <td className="px-5 py-3.5 text-sm text-gray-600">{log.resource_type || '—'}</td>
+                    <td className="px-5 py-3.5 text-xs font-mono text-gray-500">{log.ip_address || '—'}</td>
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                        <Clock className="w-3 h-3 flex-shrink-0" />
+                        {log.created_at
+                          ? new Date(log.created_at).toLocaleString('en-NG', {
+                              day: 'numeric', month: 'short',
+                              hour: '2-digit', minute: '2-digit'
+                            })
+                          : '—'}
+                      </div>
+                    </td>
+                    <td className="px-5 py-3.5 text-right">
+                      <button onClick={() => handleView(log)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-600 hover:bg-blue-50 rounded-lg transition-all">
+                        <Eye className="w-3.5 h-3.5" />
+                        View
+                      </button>
                     </td>
                   </tr>
-                ) : (
-                  activityLogs?.map(log => (
-                    <tr key={log.log_id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 text-sm font-medium">
-                        {log.username || 'System'}
-                      </td>
-                      <td className="px-6 py-4 text-sm">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getActionBadgeColor(log.action)}`}>
-                          {log.action}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm">{log.resource_type}</td>
-                      <td className="px-6 py-4 text-sm font-mono text-xs text-gray-600">
-                        {log.ip_address}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">
-                        {new Date(log.created_at).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4 text-sm">
-                        <button
-                          onClick={() => handleViewDetails(log)}
-                          className="text-blue-600 hover:text-blue-800 inline-flex items-center gap-1"
-                        >
-                          <Eye size={16} />
-                          View
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
+                ))}
               </tbody>
             </table>
-          </div>
 
-          {/* Pagination */}
-          <div className="mt-4 flex justify-between items-center">
-            <div className="text-sm text-gray-600">
-              Showing page {currentPage + 1}
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
-                disabled={currentPage === 0}
-                className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed"
-              >
-                Previous
-              </button>
-              <button
-                onClick={() => setCurrentPage(currentPage + 1)}
-                disabled={!activityLogs || activityLogs.length < pageSize}
-                className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed"
-              >
-                Next
-              </button>
+            {/* Pagination */}
+            <div className="px-5 py-3.5 border-t border-gray-50 bg-gray-50/50 flex items-center justify-between">
+              <p className="text-xs text-gray-400">
+                Page {page + 1} · {filtered.length} entries shown
+              </p>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+                  <ChevronLeft className="w-3.5 h-3.5" /> Prev
+                </button>
+                <span className="px-3 py-1.5 rounded-lg bg-slate-700 text-white text-xs font-bold">
+                  {page + 1}
+                </span>
+                <button
+                  onClick={() => setPage(page + 1)}
+                  disabled={!activityLogs || activityLogs.length < PAGE_SIZE}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+                  Next <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
           </div>
-        </>
-      )}
+        )}
+      </div>
     </div>
   );
 }
