@@ -7,8 +7,6 @@ import RoleGuard from './components/RoleGuard';
 // Public
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-
 // Core modules
 import DashboardPage from './pages/DashboardPage';
 import PatientsPage from './pages/PatientsPage';
@@ -98,8 +96,6 @@ function App() {
         {/* PUBLIC */}
         <Route path="/"         element={<LandingPage />} />
         <Route path="/login"    element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-
         {/* CORE MODULES — any authenticated user */}
         <Route path="/dashboard"     element={<Protected><DashboardPage /></Protected>} />
         <Route path="/patients"      element={<Protected><PatientsPage /></Protected>} />
