@@ -5,6 +5,8 @@ import ConsultationForm from '../components/ConsultationForm';
 import ConsultationNotes from '../components/ConsultationNotes';
 import AccessDenied from '../components/AccessDenied';
 import { useRole } from '../hooks/useRole';
+import { useToast } from '../hooks/useToast';
+import ConfirmModal from '../components/ConfirmModal';
 import {
   getConsultations, createConsultation, updateConsultation,
   deleteConsultation, getConsultationStats,
@@ -25,6 +27,9 @@ const ConsultationsPage = () => {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [modalMode, setModalMode]         = useState('add');
   const [selectedConsultation, setSelectedConsultation] = useState(null);
+  const [deleteTarget, setDeleteTarget]     = useState(null);
+  const [deleteLoading, setDeleteLoading]   = useState(false);
+  const { showToast, Toast } = useToast();
 
   // ── All hooks before any early return ────────────────────────────────────
   const fetchConsultations = useCallback(async (page = 1) => {
@@ -65,16 +70,27 @@ const ConsultationsPage = () => {
     finally { setIsSubmitting(false); }
   };
 
-  const handleDelete = async (consultationId) => {
+  const handleDeleteRequest = (consultationId) => {
     if (!p.canDelete) return;
-    if (!window.confirm('Delete this consultation record?')) return;
+    const c = consultations.find(x => x.consultation_id === consultationId);
+    setDeleteTarget(c);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
     try {
-      setIsLoading(true);
-      await deleteConsultation(consultationId);
+      await deleteConsultation(deleteTarget.consultation_id);
+      showToast('Consultation deleted successfully');
+      setDeleteTarget(null);
       fetchConsultations(currentPage);
       fetchStats();
-    } catch (error) { console.error('Delete error:', error); }
-    finally { setIsLoading(false); }
+    } catch (error) {
+      showToast('Failed to delete consultation.', 'error');
+      setDeleteTarget(null);
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
   const renderPagination = () => {
@@ -197,6 +213,17 @@ const ConsultationsPage = () => {
         </div>
       </div>
 
+      <Toast />
+      <ConfirmModal
+        isOpen={!!deleteTarget}
+        title="Delete Consultation?"
+        message="Are you sure you want to delete this consultation record? This cannot be undone."
+        confirmLabel="Delete Record"
+        loading={deleteLoading}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteTarget(null)}
+      />
+
       {p.canCreate && (
         <Modal isOpen={showFormModal} title={modalMode === 'add' ? 'Record Consultation' : 'Edit Consultation'}
           onClose={() => { setShowFormModal(false); setSelectedConsultation(null); }} size="large">
@@ -210,7 +237,7 @@ const ConsultationsPage = () => {
         <ConsultationNotes
           consultation={selectedConsultation}
           onEdit={p.canEdit ? (id) => { setShowDetailModal(false); const c = consultations.find(x => x.consultation_id === id); setSelectedConsultation(c); setModalMode('edit'); setShowFormModal(true); } : null}
-          onDelete={p.canDelete ? (id) => { setShowDetailModal(false); handleDelete(id); } : null}
+          onDelete={p.canDelete ? (id) => { setShowDetailModal(false); handleDeleteRequest(id); } : null}
           canEdit={p.canEdit}
         />
       </Modal>

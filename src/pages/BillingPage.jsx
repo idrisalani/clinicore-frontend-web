@@ -5,6 +5,8 @@ import InvoiceForm from '../components/InvoiceForm';
 import PaymentForm from '../components/PaymentForm';
 import AccessDenied from '../components/AccessDenied';
 import { useRole } from '../hooks/useRole';
+import { useToast } from '../hooks/useToast';
+import ConfirmModal from '../components/ConfirmModal';
 import {
   getInvoices, createInvoice, updateInvoice,
   deleteInvoice, recordPayment, getBillingStats,
@@ -26,6 +28,9 @@ const BillingPage = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [modalMode, setModalMode]       = useState('add');
   const [selectedInvoice, setSelectedInvoice]   = useState(null);
+  const [deleteTarget, setDeleteTarget]         = useState(null);
+  const [deleteLoading, setDeleteLoading]       = useState(false);
+  const { showToast, Toast } = useToast();
 
   // ── All hooks before any early return ────────────────────────────────────
   const fetchInvoices = useCallback(async (page = 1) => {
@@ -77,16 +82,27 @@ const BillingPage = () => {
     finally { setIsSubmitting(false); }
   };
 
-  const handleDelete = async (invoiceId) => {
+  const handleDeleteRequest = (invoiceId) => {
     if (!p.canDelete) return;
-    if (!window.confirm('Delete this invoice?')) return;
+    const inv = invoices.find(x => x.invoice_id === invoiceId);
+    setDeleteTarget(inv);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
     try {
-      setIsLoading(true);
-      await deleteInvoice(invoiceId);
+      await deleteInvoice(deleteTarget.invoice_id);
+      showToast(`Invoice ${deleteTarget.invoice_number || ''} deleted successfully`);
+      setDeleteTarget(null);
       fetchInvoices(currentPage);
       fetchStats();
-    } catch (error) { console.error('Delete error:', error); }
-    finally { setIsLoading(false); }
+    } catch (error) {
+      showToast('Failed to delete invoice.', 'error');
+      setDeleteTarget(null);
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
   const formatCurrency = (value) =>
@@ -223,7 +239,7 @@ const BillingPage = () => {
                               className="p-2 hover:bg-blue-100 rounded-lg transition-colors text-blue-600 text-sm" title="Edit">✏️</button>
                           )}
                           {p.canDelete && (
-                            <button onClick={() => handleDelete(invoice.invoice_id)}
+                            <button onClick={() => handleDeleteRequest(invoice.invoice_id)}
                               className="p-2 hover:bg-red-100 rounded-lg transition-colors text-red-600 text-sm" title="Delete">🗑️</button>
                           )}
                         </div>
@@ -243,6 +259,17 @@ const BillingPage = () => {
           )}
         </div>
       </div>
+
+      <Toast />
+      <ConfirmModal
+        isOpen={!!deleteTarget}
+        title="Delete Invoice?"
+        message={`Delete invoice ${deleteTarget?.invoice_number || ''}? This cannot be undone.`}
+        confirmLabel="Delete Invoice"
+        loading={deleteLoading}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteTarget(null)}
+      />
 
       {(p.canCreate || p.canEdit) && (
         <Modal isOpen={showInvoiceModal} title={modalMode === 'add' ? 'Create Invoice' : 'Edit Invoice'}

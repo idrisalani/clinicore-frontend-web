@@ -5,6 +5,8 @@ import AppointmentForm from '../components/AppointmentForm';
 import Modal from '../components/Modal';
 import AccessDenied from '../components/AccessDenied';
 import { useRole } from '../hooks/useRole';
+import { useToast } from '../hooks/useToast';
+import ConfirmModal from '../components/ConfirmModal';
 import {
   getAppointments, createAppointment, updateAppointment,
   deleteAppointment, getAppointmentStats,
@@ -27,6 +29,9 @@ const AppointmentsPage = () => {
   const [showModal, setShowModal]       = useState(false);
   const [modalMode, setModalMode]       = useState('add');
   const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [cancelTarget, setCancelTarget]           = useState(null);
+  const [cancelLoading, setCancelLoading]         = useState(false);
+  const { showToast, Toast } = useToast();
 
   // ── All hooks must run before any early return ────────────────────────────
   const fetchAppointments = useCallback(async (page = 1, status = '', search = '') => {
@@ -67,17 +72,27 @@ const AppointmentsPage = () => {
     finally { setIsSubmitting(false); }
   };
 
-  const handleCancel = async (appointmentId) => {
+  const handleCancelRequest = (appointmentId) => {
     if (!p.canDelete) return;
     const apt = appointments.find(a => a.appointment_id === appointmentId);
-    if (!window.confirm(`Cancel appointment for ${apt?.first_name} ${apt?.last_name}?`)) return;
+    setCancelTarget(apt);
+  };
+
+  const handleCancelConfirm = async () => {
+    if (!cancelTarget) return;
+    setCancelLoading(true);
     try {
-      setIsLoading(true);
-      await deleteAppointment(appointmentId);
+      await deleteAppointment(cancelTarget.appointment_id);
+      showToast('Appointment cancelled successfully');
+      setCancelTarget(null);
       fetchAppointments(currentPage, statusFilter, searchQuery);
       fetchStats();
-    } catch (error) { console.error('Cancel error:', error); }
-    finally { setIsLoading(false); }
+    } catch (error) {
+      showToast('Failed to cancel appointment.', 'error');
+      setCancelTarget(null);
+    } finally {
+      setCancelLoading(false);
+    }
   };
 
   const renderPagination = () => {
@@ -167,7 +182,7 @@ const AppointmentsPage = () => {
           <AppointmentTable
             appointments={appointments} isLoading={isLoading}
             onEdit={p.canEdit ? (id) => { const apt = appointments.find(a => a.appointment_id === id); setSelectedAppointment(apt); setModalMode('edit'); setShowModal(true); } : null}
-            onCancel={p.canDelete ? handleCancel : null}
+            onCancel={p.canDelete ? handleCancelRequest : null}
             onSort={(field, order) => { setSortBy(field); setSortOrder(order); }}
             sortBy={sortBy} sortOrder={sortOrder}
           />
@@ -181,6 +196,17 @@ const AppointmentsPage = () => {
           )}
         </div>
       </div>
+
+      <Toast />
+      <ConfirmModal
+        isOpen={!!cancelTarget}
+        title="Cancel Appointment?"
+        message={`Cancel appointment for ${cancelTarget?.first_name || ''} ${cancelTarget?.last_name || ''}? This cannot be undone.`}
+        confirmLabel="Cancel Appointment"
+        loading={cancelLoading}
+        onConfirm={handleCancelConfirm}
+        onCancel={() => setCancelTarget(null)}
+      />
 
       {(p.canCreate || p.canEdit) && (
         <Modal isOpen={showModal} title={modalMode === 'add' ? (isPatient ? 'Book Appointment' : 'Schedule Appointment') : 'Edit Appointment'}

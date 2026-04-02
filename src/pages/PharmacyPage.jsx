@@ -4,6 +4,8 @@ import Modal from '../components/Modal';
 import PrescriptionForm from '../components/PrescriptionForm';
 import AccessDenied from '../components/AccessDenied';
 import { useRole } from '../hooks/useRole';
+import { useToast } from '../hooks/useToast';
+import ConfirmModal from '../components/ConfirmModal';
 import {
   getPrescriptions, createPrescription, updatePrescription,
   deletePrescription, getPharmacyStats, getMedications,
@@ -24,6 +26,9 @@ const PharmacyPage = () => {
   const [showFormModal, setShowFormModal] = useState(false);
   const [modalMode, setModalMode]         = useState('add');
   const [selectedPrescription, setSelectedPrescription] = useState(null);
+  const [deleteTarget, setDeleteTarget]     = useState(null);
+  const [deleteLoading, setDeleteLoading]   = useState(false);
+  const { showToast, Toast } = useToast();
 
   // ── All hooks before any early return ────────────────────────────────────
   const fetchPrescriptions = useCallback(async (page = 1) => {
@@ -71,16 +76,27 @@ const PharmacyPage = () => {
     finally { setIsSubmitting(false); }
   };
 
-  const handleDelete = async (prescriptionId) => {
+  const handleDeleteRequest = (prescriptionId) => {
     if (!p.canDelete) return;
-    if (!window.confirm('Delete this prescription?')) return;
+    const rx = prescriptions.find(x => x.prescription_id === prescriptionId);
+    setDeleteTarget(rx);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
     try {
-      setIsLoading(true);
-      await deletePrescription(prescriptionId);
+      await deletePrescription(deleteTarget.prescription_id);
+      showToast('Prescription deleted successfully');
+      setDeleteTarget(null);
       fetchPrescriptions(currentPage);
       fetchStats();
-    } catch (error) { console.error('Delete error:', error); }
-    finally { setIsLoading(false); }
+    } catch (error) {
+      showToast('Failed to delete prescription.', 'error');
+      setDeleteTarget(null);
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
   const renderPagination = () => {
@@ -196,7 +212,7 @@ const PharmacyPage = () => {
                                 className="p-2 hover:bg-blue-100 rounded-lg transition-colors text-blue-600 text-sm" title="Edit">✏️</button>
                             )}
                             {p.canDelete && (
-                              <button onClick={() => handleDelete(rx.prescription_id)}
+                              <button onClick={() => handleDeleteRequest(rx.prescription_id)}
                                 className="p-2 hover:bg-red-100 rounded-lg transition-colors text-red-600 text-sm" title="Delete">🗑️</button>
                             )}
                           </div>
@@ -217,6 +233,17 @@ const PharmacyPage = () => {
           )}
         </div>
       </div>
+
+      <Toast />
+      <ConfirmModal
+        isOpen={!!deleteTarget}
+        title="Delete Prescription?"
+        message={`Delete prescription for ${deleteTarget?.first_name || ''} ${deleteTarget?.last_name || ''}? This cannot be undone.`}
+        confirmLabel="Delete Prescription"
+        loading={deleteLoading}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteTarget(null)}
+      />
 
       {(p.canCreate || p.canEdit) && (
         <Modal isOpen={showFormModal} title={modalMode === 'add' ? createLabel : 'Edit Prescription'}

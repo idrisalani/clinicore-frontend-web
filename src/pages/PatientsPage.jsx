@@ -5,6 +5,8 @@ import Modal from '../components/Modal';
 import PatientForm from '../components/PatientForm';
 import AccessDenied from '../components/AccessDenied';
 import { useRole } from '../hooks/useRole';
+import { useToast } from '../hooks/useToast';
+import ConfirmModal from '../components/ConfirmModal';
 import {
   getPatients, searchPatients, createPatient, updatePatient, deletePatient
 } from '../services/patientService';
@@ -24,6 +26,9 @@ const PatientsPage = () => {
   const [showModal, setShowModal]         = useState(false);
   const [modalMode, setModalMode]         = useState('add');
   const [selectedPatient, setSelectedPatient] = useState(null);
+  const [deleteTarget, setDeleteTarget]       = useState(null);
+  const [deleteLoading, setDeleteLoading]     = useState(false);
+  const { showToast, Toast } = useToast();
 
   // ── All hooks before any early return ────────────────────────────────────
   const fetchPatients = useCallback(async (page = 1, search = '') => {
@@ -78,15 +83,26 @@ const PatientsPage = () => {
     finally { setIsSubmitting(false); }
   };
 
-  const handleDelete = async (patientId) => {
+  const handleDeleteRequest = (patientId) => {
     if (!p.canDelete) return;
-    if (!window.confirm('Delete this patient? This cannot be undone.')) return;
+    const pt = patients.find(x => x.patient_id === patientId);
+    setDeleteTarget(pt);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
     try {
-      setIsLoading(true);
-      await deletePatient(patientId);
+      await deletePatient(deleteTarget.patient_id);
+      showToast(`${deleteTarget.first_name || 'Patient'} deleted successfully`);
+      setDeleteTarget(null);
       fetchPatients(currentPage, searchQuery);
-    } catch (error) { console.error('Delete error:', error); }
-    finally { setIsLoading(false); }
+    } catch (error) {
+      showToast('Failed to delete patient. Please try again.', 'error');
+      setDeleteTarget(null);
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
   const renderPagination = () => {
@@ -162,7 +178,7 @@ const PatientsPage = () => {
             patients={patients} isLoading={isLoading}
             onEdit={p.canEdit ? (id) => { const pt = patients.find(x => x.patient_id === id); setSelectedPatient(pt); setModalMode('edit'); setShowModal(true); } : null}
             onView={(id) => console.log('View patient', id)}
-            onDelete={p.canDelete ? handleDelete : null}
+            onDelete={p.canDelete ? handleDeleteRequest : null}
             onSort={(field, order) => { setSortBy(field); setSortOrder(order); }}
             sortBy={sortBy} sortOrder={sortOrder}
           />
@@ -174,6 +190,17 @@ const PatientsPage = () => {
           )}
         </div>
       </div>
+
+      <Toast />
+      <ConfirmModal
+        isOpen={!!deleteTarget}
+        title="Delete Patient?"
+        message={`Are you sure you want to delete ${deleteTarget?.first_name || ''} ${deleteTarget?.last_name || ''}? This cannot be undone.`}
+        confirmLabel="Delete Patient"
+        loading={deleteLoading}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteTarget(null)}
+      />
 
       {(p.canCreate || p.canEdit) && (
         <Modal isOpen={showModal} title={modalMode === 'add' ? 'Add New Patient' : 'Edit Patient'}
