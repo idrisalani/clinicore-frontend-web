@@ -1,133 +1,40 @@
 import api from './api.js';
 
-const CONSULTATIONS_API = '/consultations';
+const BASE = '/consultations';
 
-// ==========================================
-// GET Endpoints
-// ==========================================
-
-/**
- * Get all consultations with pagination
- */
 export const getConsultations = async (page = 1, limit = 10, patientId = '', status = '') => {
-  try {
-    console.log('📝 Fetching consultations...');
-    const response = await api.get(CONSULTATIONS_API, {
-      params: {
-        page,
-        limit,
-        patient_id: patientId,
-        status,
-      },
-    });
-    console.log(`✅ Consultations fetched:`, response.data);
-    return response.data;
-  } catch (error) {
-    console.error('❌ Error fetching consultations:', error);
-    throw error;
-  }
+  const response = await api.get(BASE, {
+    params: { page, limit, patient_id: patientId, status },
+  });
+  return response.data;
 };
 
-/**
- * Get single consultation
- */
 export const getConsultationById = async (id) => {
-  try {
-    console.log(`📝 Fetching consultation ${id}...`);
-    const response = await api.get(`${CONSULTATIONS_API}/${id}`);
-    console.log(`✅ Consultation fetched:`, response.data);
-    return response.data;
-  } catch (error) {
-    console.error('❌ Error fetching consultation:', error);
-    throw error;
-  }
+  const response = await api.get(`${BASE}/${id}`);
+  return response.data;
 };
 
-/**
- * Get consultations for a specific patient
- */
 export const getPatientConsultations = async (patientId, limit = 10) => {
-  try {
-    console.log(`📝 Fetching consultations for patient ${patientId}...`);
-    const response = await api.get(`${CONSULTATIONS_API}/patient/${patientId}`, {
-      params: { limit },
-    });
-    console.log(`✅ Patient consultations fetched:`, response.data);
-    return response.data;
-  } catch (error) {
-    console.error('❌ Error fetching patient consultations:', error);
-    throw error;
-  }
+  const response = await api.get(`${BASE}/patient/${patientId}`, { params: { limit } });
+  return response.data;
 };
 
-/**
- * Get consultation statistics
- */
 export const getConsultationStats = async () => {
-  try {
-    console.log('📊 Fetching consultation statistics...');
-    const response = await api.get(`${CONSULTATIONS_API}/stats/overview`);
-    console.log(`✅ Statistics fetched:`, response.data);
-    return response.data;
-  } catch (error) {
-    console.error('❌ Error fetching statistics:', error);
-    throw error;
-  }
+  const response = await api.get(`${BASE}/stats/overview`);
+  return response.data;
 };
 
-// ==========================================
-// POST Endpoints
-// ==========================================
-
-/**
- * Create new consultation
- */
-export const createConsultation = async (consultationData) => {
-  try {
-    console.log('➕ Creating consultation:', consultationData);
-    const response = await api.post(CONSULTATIONS_API, consultationData);
-    console.log(`✅ Consultation created:`, response.data);
-    return response.data;
-  } catch (error) {
-    console.error('❌ Error creating consultation:', error);
-    throw error;
-  }
+export const createConsultation = async (data) => {
+  const response = await api.post(BASE, data);
+  return response.data;
 };
 
-// ==========================================
-// PUT Endpoints
-// ==========================================
-
-/**
- * Update consultation
- */
-export const updateConsultation = async (id, consultationData) => {
-  try {
-    console.log(`✏️ Updating consultation ${id}:`, consultationData);
-    const response = await api.put(`${CONSULTATIONS_API}/${id}`, consultationData);
-    console.log(`✅ Consultation updated:`, response.data);
-    return response.data;
-  } catch (error) {
-    console.error('❌ Error updating consultation:', error);
-    throw error;
-  }
+export const updateConsultation = async (id, data) => {
+  const response = await api.put(`${BASE}/${id}`, data);
+  return response.data;
 };
 
-// ==========================================
-// DELETE Endpoints
-// ==========================================
-
-/**
- * Delete consultation
- */
 export const deleteConsultation = async (id) => {
-  try {
-    console.log(`🗑️ Deleting consultation ${id}...`);
-    const response = await api.delete(`${CONSULTATIONS_API}/${id}`);
-    console.log(`✅ Consultation deleted:`, response.data);
-    return response.data;
-  } catch (error) {
-    console.error('❌ Error deleting consultation:', error);
-    throw error;
-  }
+  const response = await api.delete(`${BASE}/${id}`);
+  return response.data;
 };

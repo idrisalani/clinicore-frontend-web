@@ -28,10 +28,7 @@ export const authService = {
 
         // Step 3: Notify AppLayout to re-read localStorage and update sidebar
         window.dispatchEvent(new Event('clinicore_user_saved'));
-
-        console.log('[authService] User saved:', user?.full_name, '| Role:', user?.role);
-      } catch (err) {
-        console.warn('[authService] Could not fetch user profile:', err.message);
+      } catch {
         localStorage.setItem('clinicore_user', 'null');
       }
     }

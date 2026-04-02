@@ -1,177 +1,57 @@
 import api from './api.js';
 
-const PHARMACY_API = '/pharmacy';
+const BASE = '/pharmacy';
 
-// ==========================================
-// PRESCRIPTION ENDPOINTS
-// ==========================================
-
-/**
- * Get all prescriptions
- */
 export const getPrescriptions = async (page = 1, limit = 10, patientId = '', status = '') => {
-  try {
-    console.log('💊 Fetching prescriptions...');
-    const response = await api.get(`${PHARMACY_API}/prescriptions`, {
-      params: {
-        page,
-        limit,
-        patient_id: patientId,
-        status,
-      },
-    });
-    console.log(`✅ Prescriptions fetched:`, response.data);
-    return response.data;
-  } catch (error) {
-    console.error('❌ Error fetching prescriptions:', error);
-    throw error;
-  }
+  const response = await api.get(`${BASE}/prescriptions`, {
+    params: { page, limit, patient_id: patientId, status },
+  });
+  return response.data;
 };
 
-/**
- * Get single prescription
- */
 export const getPrescriptionById = async (id) => {
-  try {
-    console.log(`💊 Fetching prescription ${id}...`);
-    const response = await api.get(`${PHARMACY_API}/prescriptions/${id}`);
-    console.log(`✅ Prescription fetched:`, response.data);
-    return response.data;
-  } catch (error) {
-    console.error('❌ Error fetching prescription:', error);
-    throw error;
-  }
+  const response = await api.get(`${BASE}/prescriptions/${id}`);
+  return response.data;
 };
 
-/**
- * Get prescriptions for a patient
- */
 export const getPatientPrescriptions = async (patientId) => {
-  try {
-    console.log(`💊 Fetching prescriptions for patient ${patientId}...`);
-    const response = await api.get(`${PHARMACY_API}/prescriptions/patient/${patientId}`);
-    console.log(`✅ Patient prescriptions fetched:`, response.data);
-    return response.data;
-  } catch (error) {
-    console.error('❌ Error fetching patient prescriptions:', error);
-    throw error;
-  }
+  const response = await api.get(`${BASE}/prescriptions/patient/${patientId}`);
+  return response.data;
 };
 
-/**
- * Create prescription
- */
-export const createPrescription = async (prescriptionData) => {
-  try {
-    console.log('➕ Creating prescription:', prescriptionData);
-    const response = await api.post(`${PHARMACY_API}/prescriptions`, prescriptionData);
-    console.log(`✅ Prescription created:`, response.data);
-    return response.data;
-  } catch (error) {
-    console.error('❌ Error creating prescription:', error);
-    throw error;
-  }
+export const createPrescription = async (data) => {
+  const response = await api.post(`${BASE}/prescriptions`, data);
+  return response.data;
 };
 
-/**
- * Update prescription
- */
-export const updatePrescription = async (id, prescriptionData) => {
-  try {
-    console.log(`✏️ Updating prescription ${id}:`, prescriptionData);
-    const response = await api.put(`${PHARMACY_API}/prescriptions/${id}`, prescriptionData);
-    console.log(`✅ Prescription updated:`, response.data);
-    return response.data;
-  } catch (error) {
-    console.error('❌ Error updating prescription:', error);
-    throw error;
-  }
+export const updatePrescription = async (id, data) => {
+  const response = await api.put(`${BASE}/prescriptions/${id}`, data);
+  return response.data;
 };
 
-/**
- * Delete prescription
- */
 export const deletePrescription = async (id) => {
-  try {
-    console.log(`🗑️ Deleting prescription ${id}...`);
-    const response = await api.delete(`${PHARMACY_API}/prescriptions/${id}`);
-    console.log(`✅ Prescription deleted:`, response.data);
-    return response.data;
-  } catch (error) {
-    console.error('❌ Error deleting prescription:', error);
-    throw error;
-  }
+  const response = await api.delete(`${BASE}/prescriptions/${id}`);
+  return response.data;
 };
 
-// ==========================================
-// MEDICATION ENDPOINTS
-// ==========================================
-
-/**
- * Get all medications
- */
 export const getMedications = async (search = '', isActive = 1) => {
-  try {
-    console.log('💊 Fetching medications...');
-    const response = await api.get(`${PHARMACY_API}/medications`, {
-      params: {
-        search,
-        is_active: isActive,
-      },
-    });
-    console.log(`✅ Medications fetched:`, response.data);
-    return response.data;
-  } catch (error) {
-    console.error('❌ Error fetching medications:', error);
-    throw error;
-  }
+  const response = await api.get(`${BASE}/medications`, {
+    params: { search, is_active: isActive },
+  });
+  return response.data;
 };
 
-/**
- * Get single medication
- */
 export const getMedicationById = async (id) => {
-  try {
-    console.log(`💊 Fetching medication ${id}...`);
-    const response = await api.get(`${PHARMACY_API}/medications/${id}`);
-    console.log(`✅ Medication fetched:`, response.data);
-    return response.data;
-  } catch (error) {
-    console.error('❌ Error fetching medication:', error);
-    throw error;
-  }
+  const response = await api.get(`${BASE}/medications/${id}`);
+  return response.data;
 };
 
-/**
- * Create medication
- */
-export const createMedication = async (medicationData) => {
-  try {
-    console.log('➕ Creating medication:', medicationData);
-    const response = await api.post(`${PHARMACY_API}/medications`, medicationData);
-    console.log(`✅ Medication created:`, response.data);
-    return response.data;
-  } catch (error) {
-    console.error('❌ Error creating medication:', error);
-    throw error;
-  }
+export const createMedication = async (data) => {
+  const response = await api.post(`${BASE}/medications`, data);
+  return response.data;
 };
 
-// ==========================================
-// STATISTICS
-// ==========================================
-
-/**
- * Get pharmacy statistics
- */
 export const getPharmacyStats = async () => {
-  try {
-    console.log('📊 Fetching pharmacy statistics...');
-    const response = await api.get(`${PHARMACY_API}/stats/overview`);
-    console.log(`✅ Statistics fetched:`, response.data);
-    return response.data;
-  } catch (error) {
-    console.error('❌ Error fetching statistics:', error);
-    throw error;
-  }
+  const response = await api.get(`${BASE}/stats/overview`);
+  return response.data;
 };
