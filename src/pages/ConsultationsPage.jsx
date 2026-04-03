@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Search, FileText, Lock } from 'lucide-react';
+import { Plus, Search, Lock, FileText } from 'lucide-react';
 import Modal from '../components/Modal';
 import ConsultationForm from '../components/ConsultationForm';
 import ConsultationNotes from '../components/ConsultationNotes';
@@ -7,54 +7,70 @@ import AccessDenied from '../components/AccessDenied';
 import { useRole } from '../hooks/useRole';
 import { useToast } from '../hooks/useToast';
 import ConfirmModal from '../components/ConfirmModal';
-import {
-  getConsultations, createConsultation, updateConsultation,
-  deleteConsultation, getConsultationStats,
-} from '../services/consultationService';
+import { getConsultations, createConsultation, updateConsultation, deleteConsultation, getConsultationStats } from '../services/consultationService';
+
+const STATUS_STYLES = {
+  Draft:     'bg-amber-100 text-amber-700',
+  Completed: 'bg-emerald-100 text-emerald-700',
+  Signed:    'bg-blue-100 text-blue-700',
+  Reviewed:  'bg-violet-100 text-violet-700',
+};
+
+const StatCard = ({ label, value, color, bg }) => (
+  <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{label}</p>
+    <p className={`text-2xl font-black mt-1 ${color}`}>{value}</p>
+    <div className={`h-1 w-8 rounded-full mt-2 ${bg}`} />
+  </div>
+);
+
+const Pagination = ({ pagination, currentPage, setCurrentPage }) => {
+  if (!pagination.totalPages || pagination.totalPages <= 1) return null;
+  return (
+    <div className="flex justify-center items-center gap-2 py-4 border-t border-slate-100">
+      <button disabled={currentPage <= 1} onClick={() => setCurrentPage(p => p - 1)}
+        className="px-4 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 disabled:opacity-40 transition-all">← Prev</button>
+      {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map(pg => (
+        <button key={pg} onClick={() => setCurrentPage(pg)}
+          className={`w-9 h-9 rounded-xl text-sm font-bold transition-all ${pg === currentPage ? 'bg-teal-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}>{pg}</button>
+      ))}
+      <button disabled={currentPage >= pagination.totalPages} onClick={() => setCurrentPage(p => p + 1)}
+        className="px-4 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 disabled:opacity-40 transition-all">Next →</button>
+    </div>
+  );
+};
 
 const ConsultationsPage = () => {
   const { permissions, isPatient, isNurse } = useRole();
   const p = permissions.consultations;
-
-  const [consultations, setConsultations] = useState([]);
-  const [stats, setStats]                 = useState({});
-  const [isLoading, setIsLoading]         = useState(false);
-  const [isSubmitting, setIsSubmitting]   = useState(false);
-  const [searchQuery, setSearchQuery]     = useState('');
-  const [currentPage, setCurrentPage]     = useState(1);
-  const [pagination, setPagination]       = useState({});
-  const [showFormModal, setShowFormModal] = useState(false);
+  const [consultations, setConsultations]   = useState([]);
+  const [stats, setStats]                   = useState({});
+  const [isLoading, setIsLoading]           = useState(false);
+  const [isSubmitting, setIsSubmitting]     = useState(false);
+  const [searchQuery, setSearchQuery]       = useState('');
+  const [currentPage, setCurrentPage]       = useState(1);
+  const [pagination, setPagination]         = useState({});
+  const [showFormModal, setShowFormModal]   = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [modalMode, setModalMode]         = useState('add');
+  const [modalMode, setModalMode]           = useState('add');
   const [selectedConsultation, setSelectedConsultation] = useState(null);
   const [deleteTarget, setDeleteTarget]     = useState(null);
   const [deleteLoading, setDeleteLoading]   = useState(false);
   const { showToast, Toast } = useToast();
 
-  // ── All hooks before any early return ────────────────────────────────────
   const fetchConsultations = useCallback(async (page = 1) => {
     if (p.isBlocked) return;
-    try {
-      setIsLoading(true);
-      const data = await getConsultations(page, 10, '', '');
-      setConsultations(data.consultations || []);
-      setPagination(data.pagination || {});
-    } catch (error) { console.error('Error fetching consultations:', error); }
-    finally { setIsLoading(false); }
+    try { setIsLoading(true); const data = await getConsultations(page, 10, '', ''); setConsultations(data.consultations || []); setPagination(data.pagination || {}); }
+    catch {} finally { setIsLoading(false); }
   }, [p.isBlocked]);
 
   const fetchStats = useCallback(async () => {
     if (p.isBlocked) return;
-    try { const data = await getConsultationStats(); setStats(data); }
-    catch (error) { console.error('Stats error:', error); }
+    try { const data = await getConsultationStats(); setStats(data); } catch {}
   }, [p.isBlocked]);
 
-  useEffect(() => {
-    fetchConsultations(currentPage);
-    fetchStats();
-  }, [currentPage, fetchConsultations, fetchStats]);
+  useEffect(() => { fetchConsultations(currentPage); fetchStats(); }, [currentPage, fetchConsultations, fetchStats]);
 
-  // ── Early return AFTER all hooks ─────────────────────────────────────────
   if (p.isBlocked) return <AccessDenied message="Clinical consultation records are restricted to medical staff only." />;
 
   const handleFormSubmit = async (formData) => {
@@ -62,18 +78,10 @@ const ConsultationsPage = () => {
       setIsSubmitting(true);
       if (modalMode === 'add') await createConsultation(formData);
       else await updateConsultation(selectedConsultation.consultation_id, formData);
-      setShowFormModal(false);
-      fetchConsultations(1);
-      fetchStats();
-      setCurrentPage(1);
-    } catch (error) { console.error('Submit error:', error); }
+      showToast(modalMode === 'add' ? 'Consultation recorded' : 'Consultation updated');
+      setShowFormModal(false); fetchConsultations(1); fetchStats(); setCurrentPage(1);
+    } catch { showToast('Failed to save consultation.', 'error'); }
     finally { setIsSubmitting(false); }
-  };
-
-  const handleDeleteRequest = (consultationId) => {
-    if (!p.canDelete) return;
-    const c = consultations.find(x => x.consultation_id === consultationId);
-    setDeleteTarget(c);
   };
 
   const handleDeleteConfirm = async () => {
@@ -81,120 +89,90 @@ const ConsultationsPage = () => {
     setDeleteLoading(true);
     try {
       await deleteConsultation(deleteTarget.consultation_id);
-      showToast('Consultation deleted successfully');
-      setDeleteTarget(null);
-      fetchConsultations(currentPage);
-      fetchStats();
-    } catch (error) {
-      showToast('Failed to delete consultation.', 'error');
-      setDeleteTarget(null);
-    } finally {
-      setDeleteLoading(false);
-    }
-  };
-
-  const renderPagination = () => {
-    if (!pagination.totalPages || pagination.totalPages <= 1) return null;
-    return (
-      <div className="flex justify-center gap-2 mt-6">
-        {currentPage > 1 && <button onClick={() => setCurrentPage(currentPage - 1)} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">Previous</button>}
-        {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map(pg => (
-          <button key={pg} onClick={() => setCurrentPage(pg)} className={`px-4 py-2 rounded-lg ${pg === currentPage ? 'bg-blue-600 text-white' : 'border border-gray-300 hover:bg-gray-50'}`}>{pg}</button>
-        ))}
-        {currentPage < pagination.totalPages && <button onClick={() => setCurrentPage(currentPage + 1)} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">Next</button>}
-      </div>
-    );
+      showToast('Consultation deleted'); setDeleteTarget(null); fetchConsultations(currentPage); fetchStats();
+    } catch { showToast('Failed to delete.', 'error'); setDeleteTarget(null); }
+    finally { setDeleteLoading(false); }
   };
 
   const pageTitle = isPatient ? 'My Medical Records' : isNurse ? 'Patient Vitals & Notes' : 'Clinical Consultations';
-  const pageDesc  = isPatient ? 'Your consultation history (read only)' : isNurse ? 'View patient consultation records' : 'Record and manage patient consultation notes';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8 px-4">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <div className="flex justify-between items-start mb-6">
-            <div>
-              <h1 className="text-4xl font-bold text-gray-900 mb-2">{pageTitle}</h1>
-              <p className="text-gray-600">{pageDesc}</p>
-            </div>
-            {p.canCreate && (
-              <button onClick={() => { setSelectedConsultation(null); setModalMode('add'); setShowFormModal(true); }}
-                className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors shadow-lg">
-                <Plus className="w-5 h-5" />
-                Record Consultation
-              </button>
-            )}
-          </div>
+    <div className="min-h-screen bg-slate-50">
+      <style>{`.fade-in{animation:fadeIn .4s ease both}@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}`}</style>
 
-          {!p.canCreate && (
-            <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4">
-              <Lock className="w-4 h-4 text-amber-600 flex-shrink-0" />
-              <p className="text-sm text-amber-700 font-medium">
-                {isPatient ? 'These are your medical records — read only' : 'View only — your role cannot create consultation notes'}
-              </p>
-            </div>
+      <div className="bg-white border-b border-slate-100 px-6 py-5">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="fade-in">
+            <h1 className="text-2xl font-black text-slate-800 tracking-tight">{pageTitle}</h1>
+            <p className="text-slate-400 text-sm mt-0.5">{isPatient ? 'Your consultation history (read only)' : 'Record and manage patient consultation notes'}</p>
+          </div>
+          {p.canCreate && (
+            <button onClick={() => { setSelectedConsultation(null); setModalMode('add'); setShowFormModal(true); }}
+              className="fade-in inline-flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-5 py-2.5 rounded-xl font-semibold text-sm shadow-sm transition-all hover:shadow-md">
+              <Plus className="w-4 h-4" /> Record Consultation
+            </button>
           )}
+        </div>
+      </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              { label: 'Total', value: stats.total || 0, color: 'bg-blue-100', emoji: '📝' },
-              { label: 'Drafts', value: stats.by_status?.['Draft'] || 0, color: 'bg-yellow-100', emoji: '✏️' },
-              { label: 'Completed', value: stats.by_status?.['Completed'] || 0, color: 'bg-green-100', emoji: '✅' },
-              { label: 'Referrals', value: stats.referrals_needed || 0, color: 'bg-orange-100', emoji: '⚠️' },
-            ].map(s => (
-              <div key={s.label} className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
-                <div className="flex items-center justify-between">
-                  <div><p className="text-gray-600 text-sm">{s.label}</p><p className="text-2xl font-bold text-gray-900 mt-1">{s.value}</p></div>
-                  <div className={`w-10 h-10 ${s.color} rounded-lg flex items-center justify-center text-lg`}>{s.emoji}</div>
-                </div>
-              </div>
-            ))}
+      <div className="max-w-7xl mx-auto px-6 py-6 space-y-5">
+        {!p.canCreate && (
+          <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3">
+            <Lock className="w-4 h-4 text-amber-500 flex-shrink-0" />
+            <p className="text-sm text-amber-700 font-medium">{isPatient ? 'These are your medical records — read only' : 'View only'}</p>
           </div>
+        )}
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 fade-in">
+          <StatCard label="Total"     value={stats.total || 0}                       color="text-slate-800" bg="bg-slate-200" />
+          <StatCard label="Drafts"    value={stats.by_status?.['Draft'] || 0}        color="text-amber-600" bg="bg-amber-400" />
+          <StatCard label="Completed" value={stats.by_status?.['Completed'] || 0}    color="text-emerald-600" bg="bg-emerald-400" />
+          <StatCard label="Referrals" value={stats.referrals_needed || 0}            color="text-orange-600" bg="bg-orange-400" />
         </div>
 
         {!isPatient && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 mb-6">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input type="text" placeholder="Search consultations by patient name..." value={searchQuery}
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+              <input type="text" placeholder="Search consultations by patient name…" value={searchQuery}
                 onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); fetchConsultations(1); }}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500" />
+                className="w-full pl-10 pr-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-400 focus:bg-white focus:ring-2 focus:ring-teal-100 transition-all" />
             </div>
           </div>
         )}
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
           {isLoading ? (
             <div className="flex items-center justify-center h-64">
-              <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+              <div className="w-10 h-10 border-teal-500 border-t-transparent rounded-full animate-spin" style={{borderWidth:3,borderStyle:'solid'}} />
             </div>
           ) : consultations.length > 0 ? (
-            <div className="overflow-x-auto">
+            <>
               <table className="w-full">
-                <thead className="bg-gradient-to-r from-blue-50 to-blue-100 border-b border-gray-200">
-                  <tr>
-                    <th className="px-6 py-4 text-left font-semibold text-gray-700">Date</th>
-                    <th className="px-6 py-4 text-left font-semibold text-gray-700">Patient</th>
-                    <th className="px-6 py-4 text-left font-semibold text-gray-700">Chief Complaint</th>
-                    <th className="px-6 py-4 text-left font-semibold text-gray-700">Diagnosis</th>
-                    <th className="px-6 py-4 text-left font-semibold text-gray-700">Status</th>
-                    <th className="px-6 py-4 text-right font-semibold text-gray-700">Actions</th>
+                <thead>
+                  <tr className="border-b border-slate-100">
+                    {['Date','Patient','Chief Complaint','Diagnosis','Status',''].map(h => (
+                      <th key={h} className={`px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider ${h === '' ? 'text-right' : 'text-left'}`}>{h}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
                   {consultations.map((c, idx) => (
-                    <tr key={c.consultation_id} className={`border-b border-gray-100 hover:bg-blue-50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                      <td className="px-6 py-4 text-sm">{new Date(c.consultation_date).toLocaleDateString('en-NG')}</td>
-                      <td className="px-6 py-4"><div className="font-medium text-gray-900">{c.first_name} {c.last_name}</div></td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{c.chief_complaint?.substring(0, 50)}...</td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{c.diagnosis?.substring(0, 30)}...</td>
-                      <td className="px-6 py-4">
-                        <span className={`text-xs font-semibold px-2 py-1 rounded ${c.status === 'Draft' ? 'bg-yellow-100 text-yellow-800' : c.status === 'Completed' ? 'bg-green-100 text-green-800' : c.status === 'Signed' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}`}>{c.status}</span>
+                    <tr key={c.consultation_id}
+                      className={`border-b border-slate-50 hover:bg-teal-50/40 transition-colors cursor-pointer ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}`}
+                      onClick={() => { setSelectedConsultation(c); setShowDetailModal(true); }}>
+                      <td className="px-5 py-4 text-sm text-slate-600">{new Date(c.consultation_date).toLocaleDateString('en-NG', { day:'numeric', month:'short', year:'numeric' })}</td>
+                      <td className="px-5 py-4">
+                        <p className="font-semibold text-slate-800 text-sm">{c.first_name} {c.last_name}</p>
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <button onClick={() => { setSelectedConsultation(c); setShowDetailModal(true); }}
-                          className="p-2 hover:bg-blue-100 rounded-lg transition-colors text-blue-600" title="View">
+                      <td className="px-5 py-4 text-sm text-slate-500 max-w-xs truncate">{c.chief_complaint?.substring(0,50)}…</td>
+                      <td className="px-5 py-4 text-sm text-slate-600 max-w-xs truncate">{c.diagnosis?.substring(0,30)}…</td>
+                      <td className="px-5 py-4">
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${STATUS_STYLES[c.status] || STATUS_STYLES.Draft}`}>{c.status}</span>
+                      </td>
+                      <td className="px-5 py-4 text-right">
+                        <button onClick={e => { e.stopPropagation(); setSelectedConsultation(c); setShowDetailModal(true); }}
+                          className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-teal-100 text-teal-600 transition-colors ml-auto">
                           <FileText className="w-4 h-4" />
                         </button>
                       </td>
@@ -202,27 +180,24 @@ const ConsultationsPage = () => {
                   ))}
                 </tbody>
               </table>
-              {renderPagination()}
-            </div>
+              <Pagination pagination={pagination} currentPage={currentPage} setCurrentPage={setCurrentPage} />
+            </>
           ) : (
-            <div className="text-center py-12">
-              <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500 text-lg">{isPatient ? 'No medical records yet' : 'No consultations recorded'}</p>
+            <div className="text-center py-16">
+              <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <FileText className="w-8 h-8 text-slate-300" />
+              </div>
+              <p className="text-slate-500 font-semibold">{isPatient ? 'No medical records yet' : 'No consultations recorded'}</p>
             </div>
           )}
         </div>
       </div>
 
       <Toast />
-      <ConfirmModal
-        isOpen={!!deleteTarget}
-        title="Delete Consultation?"
-        message="Are you sure you want to delete this consultation record? This cannot be undone."
-        confirmLabel="Delete Record"
-        loading={deleteLoading}
-        onConfirm={handleDeleteConfirm}
-        onCancel={() => setDeleteTarget(null)}
-      />
+      <ConfirmModal isOpen={!!deleteTarget} title="Delete Consultation?"
+        message="Delete this consultation record? This cannot be undone."
+        confirmLabel="Delete Record" loading={deleteLoading}
+        onConfirm={handleDeleteConfirm} onCancel={() => setDeleteTarget(null)} />
 
       {p.canCreate && (
         <Modal isOpen={showFormModal} title={modalMode === 'add' ? 'Record Consultation' : 'Edit Consultation'}
@@ -237,7 +212,7 @@ const ConsultationsPage = () => {
         <ConsultationNotes
           consultation={selectedConsultation}
           onEdit={p.canEdit ? (id) => { setShowDetailModal(false); const c = consultations.find(x => x.consultation_id === id); setSelectedConsultation(c); setModalMode('edit'); setShowFormModal(true); } : null}
-          onDelete={p.canDelete ? (id) => { setShowDetailModal(false); handleDeleteRequest(id); } : null}
+          onDelete={p.canDelete ? (id) => { setShowDetailModal(false); setDeleteTarget(consultations.find(x => x.consultation_id === id)); } : null}
           canEdit={p.canEdit}
         />
       </Modal>

@@ -1,147 +1,66 @@
 import React from 'react';
-import { CheckCircle, AlertCircle, Clock, TrendingUp } from 'lucide-react';
+import { CheckCircle, AlertCircle, Clock } from 'lucide-react';
 
-/**
- * Lab Results Display Component
- * Shows lab test results in professional format
- */
+const STATUS = {
+  Normal:   { bg:'bg-emerald-50 border-emerald-200', badge:'bg-emerald-100 text-emerald-700', icon:<CheckCircle className="w-4 h-4 text-emerald-500" /> },
+  Abnormal: { bg:'bg-orange-50 border-orange-200',   badge:'bg-orange-100 text-orange-700',  icon:<AlertCircle className="w-4 h-4 text-orange-500" /> },
+  Critical: { bg:'bg-red-50 border-red-200',         badge:'bg-red-100 text-red-700',        icon:<AlertCircle className="w-4 h-4 text-red-500" /> },
+  Pending:  { bg:'bg-slate-50 border-slate-200',     badge:'bg-slate-100 text-slate-600',    icon:<Clock className="w-4 h-4 text-slate-400" /> },
+};
+
 const LabResults = ({ results = [], isLoading = false }) => {
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-32">
-        <div className="animate-spin">
-          <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full"></div>
-        </div>
-      </div>
-    );
-  }
+  if (isLoading) return (
+    <div className="flex items-center justify-center h-24">
+      <div className="w-8 h-8 border-teal-500 border-t-transparent rounded-full animate-spin" style={{borderWidth:3,borderStyle:'solid'}} />
+    </div>
+  );
 
-  if (!results || results.length === 0) {
-    return (
-      <div className="text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
-        <Clock className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-        <p className="text-gray-500">No results available yet</p>
-      </div>
-    );
-  }
-
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'Normal':
-        return <CheckCircle className="w-5 h-5 text-green-600" />;
-      case 'Abnormal':
-        return <AlertCircle className="w-5 h-5 text-orange-600" />;
-      case 'Critical':
-        return <AlertCircle className="w-5 h-5 text-red-600" />;
-      case 'Pending':
-        return <Clock className="w-5 h-5 text-gray-400" />;
-      default:
-        return <TrendingUp className="w-5 h-5 text-blue-600" />;
-    }
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'Normal':
-        return 'bg-green-50 border-green-200';
-      case 'Abnormal':
-        return 'bg-orange-50 border-orange-200';
-      case 'Critical':
-        return 'bg-red-50 border-red-200';
-      case 'Pending':
-        return 'bg-gray-50 border-gray-200';
-      default:
-        return 'bg-blue-50 border-blue-200';
-    }
-  };
-
-  const getStatusBadgeColor = (status) => {
-    switch (status) {
-      case 'Normal':
-        return 'bg-green-100 text-green-800';
-      case 'Abnormal':
-        return 'bg-orange-100 text-orange-800';
-      case 'Critical':
-        return 'bg-red-100 text-red-800';
-      case 'Pending':
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-blue-100 text-blue-800';
-    }
-  };
+  if (!results?.length) return (
+    <div className="text-center py-8 bg-slate-50 rounded-2xl border border-slate-100">
+      <Clock className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+      <p className="text-slate-400 text-sm font-medium">No results available yet</p>
+    </div>
+  );
 
   return (
-    <div className="space-y-4">
-      {results.map((result) => (
-        <div
-          key={result.result_id}
-          className={`border rounded-lg p-4 ${getStatusColor(result.result_status)}`}
-        >
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex items-center gap-3">
-              {getStatusIcon(result.result_status)}
-              <div>
-                <h4 className="font-semibold text-gray-900">Lab Result</h4>
-                <p className="text-sm text-gray-600">
-                  {new Date(result.test_date).toLocaleDateString('en-NG')}
-                </p>
+    <div className="space-y-3">
+      {results.map((r) => {
+        const s = STATUS[r.result_status] || STATUS.Pending;
+        return (
+          <div key={r.result_id} className={`rounded-2xl border p-4 ${s.bg}`}>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                {s.icon}
+                <div>
+                  <p className="text-sm font-bold text-slate-800">Lab Result</p>
+                  <p className="text-xs text-slate-400">{r.test_date ? new Date(r.test_date).toLocaleDateString('en-NG') : '—'}</p>
+                </div>
               </div>
+              <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${s.badge}`}>{r.result_status}</span>
             </div>
-            <span
-              className={`text-xs font-semibold px-3 py-1 rounded-full ${getStatusBadgeColor(
-                result.result_status
-              )}`}
-            >
-              {result.result_status}
-            </span>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <p className="text-gray-600">Result Value:</p>
-              <p className="font-semibold text-gray-900">{result.result_value}</p>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div><p className="text-xs text-slate-500 uppercase tracking-wide font-semibold">Result</p><p className="font-black text-slate-800 text-lg mt-0.5">{r.result_value}{r.unit ? ` ${r.unit}` : ''}</p></div>
+              {r.reference_range && <div><p className="text-xs text-slate-500 uppercase tracking-wide font-semibold">Reference</p><p className="font-semibold text-slate-600 mt-0.5">{r.reference_range}</p></div>}
+              {r.performed_by && <div><p className="text-xs text-slate-500 uppercase tracking-wide font-semibold">Performed By</p><p className="font-semibold text-slate-600 mt-0.5">{r.performed_by}</p></div>}
+              {r.completion_date && <div><p className="text-xs text-slate-500 uppercase tracking-wide font-semibold">Completed</p><p className="font-semibold text-slate-600 mt-0.5">{new Date(r.completion_date).toLocaleDateString('en-NG')}</p></div>}
             </div>
-            {result.unit && (
-              <div>
-                <p className="text-gray-600">Unit:</p>
-                <p className="font-semibold text-gray-900">{result.unit}</p>
+
+            {r.interpretation && (
+              <div className="mt-3 pt-3 border-t border-black/5">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Interpretation</p>
+                <p className="text-sm text-slate-700">{r.interpretation}</p>
               </div>
             )}
-            {result.reference_range && (
-              <div>
-                <p className="text-gray-600">Reference Range:</p>
-                <p className="font-semibold text-gray-900">{result.reference_range}</p>
-              </div>
-            )}
-            {result.performed_by && (
-              <div>
-                <p className="text-gray-600">Performed By:</p>
-                <p className="font-semibold text-gray-900">{result.performed_by}</p>
+            {r.notes && (
+              <div className="mt-2">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Notes</p>
+                <p className="text-sm text-slate-600">{r.notes}</p>
               </div>
             )}
           </div>
-
-          {result.interpretation && (
-            <div className="mt-3 pt-3 border-t border-gray-300">
-              <p className="text-sm text-gray-600 mb-1">Interpretation:</p>
-              <p className="text-sm text-gray-800">{result.interpretation}</p>
-            </div>
-          )}
-
-          {result.notes && (
-            <div className="mt-3 pt-3 border-t border-gray-300">
-              <p className="text-sm text-gray-600 mb-1">Notes:</p>
-              <p className="text-sm text-gray-800">{result.notes}</p>
-            </div>
-          )}
-
-          {result.completion_date && (
-            <p className="text-xs text-gray-500 mt-3">
-              Completed: {new Date(result.completion_date).toLocaleDateString('en-NG')}
-            </p>
-          )}
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 };

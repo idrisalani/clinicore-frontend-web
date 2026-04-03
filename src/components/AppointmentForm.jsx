@@ -1,38 +1,41 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Calendar, Clock, FileText, Loader } from 'lucide-react';
 import { getDoctorAvailability } from '../services/appointmentService';
 
-/**
- * Appointment Form Component
- * Handles both Add and Edit modes for appointments
- */
-const AppointmentForm = ({
-  appointment = null,
-  patientId = null,
-  isLoading = false,
-  onSubmit = null,
-  onCancel = null,
-  mode = 'add', // 'add' or 'edit'
-}) => {
-  const [formData, setFormData] = useState({
-    patient_id: patientId || '',
-    doctor_id: '',
-    appointment_date: '',
-    appointment_time: '',
-    duration_minutes: 30,
-    reason_for_visit: '',
-    notes: '',
-    status: 'Scheduled',
-    is_confirmed: 0,
-  });
+const F = ({ label, error, children }) => (
+  <div>
+    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">{label}</label>
+    {children}
+    {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+  </div>
+);
+const inp = (err) => `w-full px-3.5 py-2.5 text-sm rounded-xl border outline-none transition-all ${err ? 'bg-red-50 border-red-300 focus:border-red-400' : 'bg-slate-50 border-slate-200 focus:border-teal-400 focus:bg-white focus:ring-2 focus:ring-teal-100'}`;
+const sel = `w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 bg-slate-50 focus:border-teal-400 focus:bg-white focus:ring-2 focus:ring-teal-100 outline-none transition-all appearance-none cursor-pointer`;
 
+const Section = ({ icon: Icon, title, color, children }) => (
+  <div className="space-y-3">
+    <div className={`flex items-center gap-2 pb-2 border-b border-slate-100`}>
+      <Icon className={`w-4 h-4 ${color}`} />
+      <h4 className="text-xs font-bold text-slate-600 uppercase tracking-wider">{title}</h4>
+    </div>
+    {children}
+  </div>
+);
+
+const AppointmentForm = ({ appointment = null, patientId = null, isLoading = false, onSubmit, onCancel, mode = 'add' }) => {
+  const [form, setForm] = useState({
+    patient_id: patientId || '', doctor_id: '',
+    appointment_date: '', appointment_time: '',
+    duration_minutes: 30, reason_for_visit: '',
+    notes: '', status: 'Scheduled', is_confirmed: 0,
+  });
   const [errors, setErrors] = useState({});
-  const [availableSlots, setAvailableSlots] = useState([]);
+  const [slots, setSlots]   = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
 
-  // Populate form when editing
   useEffect(() => {
     if (appointment && mode === 'edit') {
-      setFormData({
+      setForm(f => ({ ...f,
         patient_id: appointment.patient_id || '',
         doctor_id: appointment.doctor_id || '',
         appointment_date: appointment.appointment_date || '',
@@ -42,303 +45,109 @@ const AppointmentForm = ({
         notes: appointment.notes || '',
         status: appointment.status || 'Scheduled',
         is_confirmed: appointment.is_confirmed || 0,
-      });
+      }));
     }
   }, [appointment, mode]);
 
-  const loadAvailableSlots = async () => {
+  const loadSlots = useCallback(async () => {
+    if (!form.doctor_id || !form.appointment_date || mode !== 'add') return;
     try {
       setLoadingSlots(true);
-      console.log('📅 Loading available slots...');
-      const data = await getDoctorAvailability(formData.doctor_id, formData.appointment_date);
-      setAvailableSlots(data.available_slots || []);
-      console.log(`✅ Found ${data.available_slots.length} available slots`);
-    } catch (error) {
-      console.error('❌ Error loading slots:', error);
-      setAvailableSlots([]);
-    } finally {
-      setLoadingSlots(false);
-    }
-  };
+      const data = await getDoctorAvailability(form.doctor_id, form.appointment_date);
+      setSlots(data.available_slots || []);
+    } catch { setSlots([]); }
+    finally { setLoadingSlots(false); }
+  }, [form.doctor_id, form.appointment_date, mode]);
 
-  // Load available slots when date/doctor changes
-  useEffect(() => {
-    if (formData.appointment_date && formData.doctor_id && mode === 'add') {
-      loadAvailableSlots();
-    }
-  }, [loadAvailableSlots]);
+  useEffect(() => { loadSlots(); }, [loadSlots]);
 
-
-  // Validate form
-  const validateForm = () => {
-    const newErrors = {};
-
-    if (!formData.patient_id) {
-      newErrors.patient_id = 'Patient is required';
-    }
-    if (!formData.appointment_date) {
-      newErrors.appointment_date = 'Appointment date is required';
-    }
-    if (!formData.appointment_time) {
-      newErrors.appointment_time = 'Appointment time is required';
-    }
-    if (!formData.reason_for_visit.trim()) {
-      newErrors.reason_for_visit = 'Reason for visit is required';
-    }
-
-    // Check if date is not in the past
-    const selectedDate = new Date(formData.appointment_date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    if (selectedDate < today && mode === 'add') {
-      newErrors.appointment_date = 'Cannot schedule appointments in the past';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  // Handle input change
-  const handleChange = (e) => {
+  const set = (e) => {
     const { name, value, type } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? (e.target.checked ? 1 : 0) : value,
-    }));
-    // Clear error for this field
-    if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: '',
-      }));
-    }
+    setForm(f => ({ ...f, [name]: type === 'checkbox' ? (e.target.checked ? 1 : 0) : value }));
+    if (errors[name]) setErrors(ev => ({ ...ev, [name]: '' }));
   };
 
-  // Handle form submit
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    if (!validateForm()) {
-      console.log('❌ Form validation failed');
-      return;
-    }
-
-    console.log('✅ Form submitted:', formData);
-    if (onSubmit) {
-      onSubmit(formData);
-    }
+  const validate = () => {
+    const errs = {};
+    if (!form.patient_id) errs.patient_id = 'Required';
+    if (!form.appointment_date) errs.appointment_date = 'Required';
+    if (!form.appointment_time) errs.appointment_time = 'Required';
+    if (!form.reason_for_visit.trim()) errs.reason_for_visit = 'Required';
+    if (mode === 'add' && new Date(form.appointment_date) < new Date(new Date().toDateString())) errs.appointment_date = 'Cannot be in the past';
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
   };
+
+  const submit = (e) => { e.preventDefault(); if (validate() && onSubmit) onSubmit(form); };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Header */}
-      <div className="pb-4 border-b border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-900">
-          {mode === 'add' ? 'Schedule New Appointment' : 'Edit Appointment'}
-        </h3>
-        <p className="text-sm text-gray-600 mt-1">
-          {mode === 'add' 
-            ? 'Fill in the appointment details'
-            : 'Update appointment information'}
-        </p>
-      </div>
-
-      {/* Appointment Details */}
-      <div className="space-y-4">
-        {/* Patient ID (if not pre-filled) */}
-        {!patientId && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Patient ID *
-            </label>
-            <input
-              type="number"
-              name="patient_id"
-              value={formData.patient_id}
-              onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500 ${
-                errors.patient_id ? 'border-red-500' : 'border-gray-300'
-              }`}
-              placeholder="Patient ID"
-            />
-            {errors.patient_id && (
-              <p className="text-red-500 text-xs mt-1">{errors.patient_id}</p>
+    <form onSubmit={submit} className="space-y-6">
+      <Section icon={Calendar} title="Appointment Details" color="text-teal-500">
+        <div className="grid grid-cols-2 gap-3">
+          {!patientId && (
+            <F label="Patient ID *" error={errors.patient_id}>
+              <input type="number" name="patient_id" value={form.patient_id} onChange={set} className={inp(errors.patient_id)} placeholder="Patient ID" />
+            </F>
+          )}
+          <F label="Doctor ID">
+            <input type="number" name="doctor_id" value={form.doctor_id} onChange={set} className={inp(false)} placeholder="Doctor ID (optional)" />
+          </F>
+          <F label="Date *" error={errors.appointment_date}>
+            <input type="date" name="appointment_date" value={form.appointment_date} onChange={set}
+              min={mode === 'add' ? new Date().toISOString().split('T')[0] : undefined} className={inp(errors.appointment_date)} />
+          </F>
+          <F label="Time *" error={errors.appointment_time}>
+            {loadingSlots ? <p className="text-sm text-slate-400 py-2">Loading slots…</p> : (
+              <select name="appointment_time" value={form.appointment_time} onChange={set} className={`${sel} ${errors.appointment_time ? 'border-red-300' : ''}`}>
+                <option value="">Select time</option>
+                {mode === 'add' && slots.length > 0
+                  ? slots.map(s => <option key={s} value={s}>{s}</option>)
+                  : <option value={form.appointment_time}>{form.appointment_time || 'Manual entry'}</option>}
+              </select>
             )}
-          </div>
-        )}
-
-        {/* Doctor ID */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Doctor ID
-          </label>
-          <input
-            type="number"
-            name="doctor_id"
-            value={formData.doctor_id}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-            placeholder="Doctor ID (optional)"
-          />
+          </F>
         </div>
+      </Section>
 
-        {/* Appointment Date */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Appointment Date *
-          </label>
-          <input
-            type="date"
-            name="appointment_date"
-            value={formData.appointment_date}
-            onChange={handleChange}
-            min={mode === 'add' ? new Date().toISOString().split('T')[0] : undefined}
-            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500 ${
-              errors.appointment_date ? 'border-red-500' : 'border-gray-300'
-            }`}
-          />
-          {errors.appointment_date && (
-            <p className="text-red-500 text-xs mt-1">{errors.appointment_date}</p>
-          )}
-        </div>
-
-        {/* Appointment Time */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Appointment Time *
-          </label>
-          {loadingSlots ? (
-            <p className="text-sm text-gray-500">Loading available slots...</p>
-          ) : (
-            <select
-              name="appointment_time"
-              value={formData.appointment_time}
-              onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500 ${
-                errors.appointment_time ? 'border-red-500' : 'border-gray-300'
-              }`}
-            >
-              <option value="">Select time</option>
-              {mode === 'add' && availableSlots.length > 0 ? (
-                availableSlots.map(slot => (
-                  <option key={slot} value={slot}>{slot}</option>
-                ))
-              ) : (
-                <option value={formData.appointment_time}>{formData.appointment_time}</option>
-              )}
+      <Section icon={Clock} title="Duration & Status" color="text-blue-500">
+        <div className="grid grid-cols-2 gap-3">
+          <F label="Duration">
+            <select name="duration_minutes" value={form.duration_minutes} onChange={set} className={sel}>
+              {[15,30,45,60,90,120].map(d => <option key={d} value={d}>{d < 60 ? `${d} min` : `${d/60}h`}</option>)}
             </select>
-          )}
-          {errors.appointment_time && (
-            <p className="text-red-500 text-xs mt-1">{errors.appointment_time}</p>
-          )}
+          </F>
+          <F label="Status">
+            <select name="status" value={form.status} onChange={set} className={sel}>
+              {['Scheduled','Completed','Cancelled','No-Show','Rescheduled'].map(s => <option key={s}>{s}</option>)}
+            </select>
+          </F>
         </div>
+        <label className="flex items-center gap-2.5 cursor-pointer mt-1">
+          <input type="checkbox" name="is_confirmed" checked={form.is_confirmed === 1} onChange={set}
+            className="w-4 h-4 accent-teal-600 rounded" />
+          <span className="text-sm text-slate-600 font-medium">Mark as confirmed</span>
+        </label>
+      </Section>
 
-        {/* Duration */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Duration (minutes)
-          </label>
-          <select
-            name="duration_minutes"
-            value={formData.duration_minutes}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-          >
-            <option value="15">15 minutes</option>
-            <option value="30">30 minutes</option>
-            <option value="45">45 minutes</option>
-            <option value="60">1 hour</option>
-            <option value="90">1.5 hours</option>
-            <option value="120">2 hours</option>
-          </select>
-        </div>
+      <Section icon={FileText} title="Visit Details" color="text-violet-500">
+        <F label="Reason for Visit *" error={errors.reason_for_visit}>
+          <input type="text" name="reason_for_visit" value={form.reason_for_visit} onChange={set}
+            className={inp(errors.reason_for_visit)} placeholder="e.g., General Checkup, Follow-up" />
+        </F>
+        <F label="Notes">
+          <textarea name="notes" value={form.notes} onChange={set} rows={3}
+            className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 bg-slate-50 focus:border-teal-400 focus:bg-white focus:ring-2 focus:ring-teal-100 outline-none transition-all resize-none"
+            placeholder="Additional notes (optional)" />
+        </F>
+      </Section>
 
-        {/* Reason for Visit */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Reason for Visit *
-          </label>
-          <input
-            type="text"
-            name="reason_for_visit"
-            value={formData.reason_for_visit}
-            onChange={handleChange}
-            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500 ${
-              errors.reason_for_visit ? 'border-red-500' : 'border-gray-300'
-            }`}
-            placeholder="e.g., General Checkup, Follow-up"
-          />
-          {errors.reason_for_visit && (
-            <p className="text-red-500 text-xs mt-1">{errors.reason_for_visit}</p>
-          )}
-        </div>
-
-        {/* Notes */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Notes
-          </label>
-          <textarea
-            name="notes"
-            value={formData.notes}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-            placeholder="Additional notes (optional)"
-            rows="3"
-          />
-        </div>
-
-        {/* Status */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Status
-          </label>
-          <select
-            name="status"
-            value={formData.status}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-          >
-            <option value="Scheduled">Scheduled</option>
-            <option value="Completed">Completed</option>
-            <option value="Cancelled">Cancelled</option>
-            <option value="No-Show">No-Show</option>
-            <option value="Rescheduled">Rescheduled</option>
-          </select>
-        </div>
-
-        {/* Confirmed Checkbox */}
-        <div className="flex items-center">
-          <input
-            type="checkbox"
-            name="is_confirmed"
-            checked={formData.is_confirmed === 1}
-            onChange={handleChange}
-            className="w-4 h-4 border border-gray-300 rounded text-blue-600"
-            id="is_confirmed"
-          />
-          <label htmlFor="is_confirmed" className="ml-2 text-sm text-gray-700">
-            Appointment confirmed
-          </label>
-        </div>
-      </div>
-
-      {/* Form Actions */}
-      <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isLoading ? 'Saving...' : mode === 'add' ? 'Schedule Appointment' : 'Save Changes'}
+      <div className="flex justify-end gap-3 pt-2">
+        <button type="button" onClick={onCancel}
+          className="px-5 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all">Cancel</button>
+        <button type="submit" disabled={isLoading}
+          className="px-5 py-2.5 text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-xl shadow-sm transition-all disabled:opacity-50 flex items-center gap-2">
+          {isLoading && <Loader className="w-4 h-4 animate-spin" />}
+          {isLoading ? 'Saving…' : mode === 'add' ? 'Schedule Appointment' : 'Save Changes'}
         </button>
       </div>
     </form>

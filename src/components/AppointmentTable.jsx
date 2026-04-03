@@ -1,208 +1,103 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, Trash2, Edit2, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { ChevronUp, ChevronDown, Edit2, Trash2, Clock, CheckCircle, XCircle, Calendar } from 'lucide-react';
 
-/**
- * Professional Appointment Table Component
- */
+const STATUS = {
+  Scheduled:   { badge: 'bg-blue-100 text-blue-700',   icon: <Clock       className="w-3.5 h-3.5" /> },
+  Completed:   { badge: 'bg-emerald-100 text-emerald-700', icon: <CheckCircle className="w-3.5 h-3.5" /> },
+  Cancelled:   { badge: 'bg-red-100 text-red-700',     icon: <XCircle     className="w-3.5 h-3.5" /> },
+  'No-Show':   { badge: 'bg-orange-100 text-orange-700', icon: <XCircle   className="w-3.5 h-3.5" /> },
+  Rescheduled: { badge: 'bg-purple-100 text-purple-700', icon: <Clock     className="w-3.5 h-3.5" /> },
+};
+
 const AppointmentTable = ({
-  appointments = [],
-  isLoading = false,
-  onEdit = null,
-  onCancel = null,
-  onSort = null,
-  sortBy = 'appointment_date',
-  sortOrder = 'asc',
+  appointments = [], isLoading = false,
+  onEdit = null, onCancel = null,
+  onSort = null, sortBy = 'appointment_date', sortOrder = 'asc',
 }) => {
-  const [hoveredRow, setHoveredRow] = useState(null);
+  const [hovered, setHovered] = useState(null);
 
-  const handleSort = (field) => {
-    if (onSort) {
-      const newOrder = sortBy === field && sortOrder === 'asc' ? 'desc' : 'asc';
-      onSort(field, newOrder);
-    }
-  };
+  const sort = (f) => { if (onSort) onSort(f, sortBy === f && sortOrder === 'asc' ? 'desc' : 'asc'); };
 
-  const SortIcon = ({ field }) => {
-    if (sortBy !== field) {
-      return <div className="w-4 h-4" />;
-    }
-    return sortOrder === 'asc' ? (
-      <ChevronUp className="w-4 h-4" />
-    ) : (
-      <ChevronDown className="w-4 h-4" />
-    );
-  };
+  const SortBtn = ({ field, children }) => (
+    <button onClick={() => sort(field)} className="flex items-center gap-1 text-xs font-bold text-slate-500 uppercase tracking-wider hover:text-teal-600 transition-colors">
+      {children}
+      {sortBy === field ? (sortOrder === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />) : <ChevronDown className="w-3 h-3 text-slate-300" />}
+    </button>
+  );
 
-  const formatDate = (date) => {
-    if (!date) return 'N/A';
-    return new Date(date).toLocaleDateString('en-NG', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
+  const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-NG', { day:'numeric', month:'short', year:'numeric' }) : '—';
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'Scheduled':
-        return <Clock className="w-4 h-4 text-blue-600" />;
-      case 'Completed':
-        return <CheckCircle className="w-4 h-4 text-green-600" />;
-      case 'Cancelled':
-      case 'No-Show':
-        return <XCircle className="w-4 h-4 text-red-600" />;
-      default:
-        return <Clock className="w-4 h-4 text-gray-600" />;
-    }
-  };
+  if (isLoading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="w-10 h-10 border-teal-500 border-t-transparent rounded-full animate-spin" style={{borderWidth:3,borderStyle:'solid'}} />
+    </div>
+  );
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'Scheduled':
-        return 'bg-blue-100 text-blue-800';
-      case 'Completed':
-        return 'bg-green-100 text-green-800';
-      case 'Cancelled':
-        return 'bg-red-100 text-red-800';
-      case 'No-Show':
-        return 'bg-orange-100 text-orange-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin">
-          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full"></div>
-        </div>
+  if (!appointments.length) return (
+    <div className="text-center py-16">
+      <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <Calendar className="w-8 h-8 text-slate-300" />
       </div>
-    );
-  }
-
-  if (appointments.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-gray-500 text-lg">No appointments found</p>
-        <p className="text-gray-400 text-sm mt-2">Schedule your first appointment</p>
-      </div>
-    );
-  }
+      <p className="text-slate-500 font-semibold">No appointments found</p>
+      <p className="text-slate-400 text-sm mt-1">Schedule your first appointment</p>
+    </div>
+  );
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+    <div className="overflow-x-auto">
       <table className="w-full">
         <thead>
-          <tr className="bg-gradient-to-r from-blue-50 to-blue-100 border-b border-gray-200">
-            <th className="px-6 py-4 text-left">
-              <button
-                onClick={() => handleSort('appointment_date')}
-                className="flex items-center gap-2 font-semibold text-gray-700 hover:text-blue-600 transition-colors"
-              >
-                Date & Time
-                <SortIcon field="appointment_date" />
-              </button>
-            </th>
-            <th className="px-6 py-4 text-left">
-              <span className="font-semibold text-gray-700">Patient</span>
-            </th>
-            <th className="px-6 py-4 text-left">
-              <span className="font-semibold text-gray-700">Reason</span>
-            </th>
-            <th className="px-6 py-4 text-left">
-              <button
-                onClick={() => handleSort('status')}
-                className="flex items-center gap-2 font-semibold text-gray-700 hover:text-blue-600 transition-colors"
-              >
-                Status
-                <SortIcon field="status" />
-              </button>
-            </th>
-            <th className="px-6 py-4 text-left">Duration</th>
-            <th className="px-6 py-4 text-right font-semibold text-gray-700">Actions</th>
+          <tr className="border-b border-slate-100">
+            <th className="px-5 py-4 text-left"><SortBtn field="appointment_date">Date & Time</SortBtn></th>
+            <th className="px-5 py-4 text-left"><span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Patient</span></th>
+            <th className="px-5 py-4 text-left"><span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Reason</span></th>
+            <th className="px-5 py-4 text-left"><SortBtn field="status">Status</SortBtn></th>
+            <th className="px-5 py-4 text-left"><span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Duration</span></th>
+            <th className="px-5 py-4 text-right"><span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Actions</span></th>
           </tr>
         </thead>
-
         <tbody>
-          {appointments.map((apt, index) => (
-            <tr
-              key={apt.appointment_id}
-              className={`border-b border-gray-100 transition-all duration-200 ${
-                hoveredRow === apt.appointment_id
-                  ? 'bg-blue-50 shadow-sm'
-                  : index % 2 === 0
-                  ? 'bg-white'
-                  : 'bg-gray-50'
-              }`}
-              onMouseEnter={() => setHoveredRow(apt.appointment_id)}
-              onMouseLeave={() => setHoveredRow(null)}
-            >
-              {/* Date & Time */}
-              <td className="px-6 py-4">
-                <div className="font-semibold text-gray-900">
-                  {formatDate(apt.appointment_date)}
-                </div>
-                <div className="text-sm text-gray-600">{apt.appointment_time}</div>
-              </td>
-
-              {/* Patient */}
-              <td className="px-6 py-4">
-                <div className="font-medium text-gray-900">
-                  {apt.first_name} {apt.last_name}
-                </div>
-                <div className="text-sm text-gray-600">{apt.phone}</div>
-              </td>
-
-              {/* Reason */}
-              <td className="px-6 py-4">
-                <div className="text-gray-900">{apt.reason_for_visit}</div>
-              </td>
-
-              {/* Status */}
-              <td className="px-6 py-4">
-                <div className="flex items-center gap-2">
-                  {getStatusIcon(apt.status)}
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${getStatusColor(apt.status)}`}>
-                    {apt.status}
+          {appointments.map((apt, idx) => {
+            const s = STATUS[apt.status] || STATUS.Scheduled;
+            return (
+              <tr key={apt.appointment_id}
+                className={`border-b border-slate-50 transition-all duration-150 ${hovered === apt.appointment_id ? 'bg-teal-50/60' : idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}`}
+                onMouseEnter={() => setHovered(apt.appointment_id)}
+                onMouseLeave={() => setHovered(null)}>
+                <td className="px-5 py-4">
+                  <p className="font-semibold text-slate-800 text-sm">{fmtDate(apt.appointment_date)}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{apt.appointment_time || '—'}</p>
+                </td>
+                <td className="px-5 py-4">
+                  <p className="font-semibold text-slate-800 text-sm">{apt.first_name} {apt.last_name}</p>
+                  <p className="text-xs text-slate-400">{apt.phone}</p>
+                </td>
+                <td className="px-5 py-4 text-sm text-slate-600 max-w-xs truncate">{apt.reason_for_visit}</td>
+                <td className="px-5 py-4">
+                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${s.badge}`}>
+                    {s.icon} {apt.status}
                   </span>
-                </div>
-              </td>
-
-              {/* Duration */}
-              <td className="px-6 py-4 text-sm text-gray-600">
-                {apt.duration_minutes || 30} min
-              </td>
-
-              {/* Actions */}
-              <td className="px-6 py-4">
-                <div
-                  className={`flex justify-end gap-2 transition-opacity duration-200 ${
-                    hoveredRow === apt.appointment_id ? 'opacity-100' : 'opacity-0'
-                  }`}
-                >
-                  {onEdit && apt.status !== 'Completed' && (
-                    <button
-                      onClick={() => onEdit(apt.appointment_id)}
-                      className="p-2 hover:bg-yellow-100 rounded-lg transition-colors text-yellow-600"
-                      title="Edit appointment"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                  )}
-                  {onCancel && apt.status !== 'Cancelled' && (
-                    <button
-                      onClick={() => onCancel(apt.appointment_id)}
-                      className="p-2 hover:bg-red-100 rounded-lg transition-colors text-red-600"
-                      title="Cancel appointment"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-              </td>
-            </tr>
-          ))}
+                </td>
+                <td className="px-5 py-4 text-sm text-slate-500">{apt.duration_minutes || 30} min</td>
+                <td className="px-5 py-4">
+                  <div className={`flex justify-end gap-1 transition-opacity duration-150 ${hovered === apt.appointment_id ? 'opacity-100' : 'opacity-0'}`}>
+                    {onEdit && apt.status !== 'Completed' && (
+                      <button onClick={() => onEdit(apt.appointment_id)}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-blue-100 text-blue-600 transition-colors">
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                    )}
+                    {onCancel && apt.status !== 'Cancelled' && (
+                      <button onClick={() => onCancel(apt.appointment_id)}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-100 text-red-500 transition-colors">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

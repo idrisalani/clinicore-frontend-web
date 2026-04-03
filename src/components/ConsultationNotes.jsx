@@ -1,278 +1,156 @@
 import React, { useState } from 'react';
-import { Edit2, Trash2, Download, Eye, EyeOff } from 'lucide-react';
+import { Edit2, Trash2, Download, ChevronDown, ChevronUp, AlertTriangle, Activity, Stethoscope, CalendarCheck, MessageSquare, Search } from 'lucide-react';
 
-/**
- * Consultation Notes Display Component
- * Shows clinical notes in professional medical record format
- */
-const ConsultationNotes = ({
-  consultation = null,
-  isLoading = false,
-  onEdit = null,
-  onDelete = null,
-  canEdit = true,
-}) => {
-  const [expandedSections, setExpandedSections] = useState({
-    chief_complaint: true,
-    history: true,
-    vitals: true,
-    examination: true,
-    diagnosis: true,
-    followup: true,
-  });
+const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-NG', { day:'numeric', month:'long', year:'numeric' }) : '—';
 
-  const toggleSection = (section) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [section]: !prev[section],
-    }));
-  };
+const STATUS = {
+  Draft:     'bg-amber-100 text-amber-700',
+  Completed: 'bg-emerald-100 text-emerald-700',
+  Signed:    'bg-blue-100 text-blue-700',
+  Reviewed:  'bg-violet-100 text-violet-700',
+};
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin">
-          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full"></div>
-        </div>
+const Section = ({ icon: Icon, title, color, bg, id, expanded, onToggle, children }) => (
+  <div className={`rounded-2xl border overflow-hidden ${bg}`}>
+    <button onClick={() => onToggle(id)} className="w-full flex items-center justify-between px-5 py-3.5 text-left hover:opacity-90 transition-opacity">
+      <div className="flex items-center gap-2">
+        <Icon className={`w-4 h-4 ${color}`} />
+        <span className={`text-xs font-bold uppercase tracking-wider ${color}`}>{title}</span>
       </div>
-    );
-  }
+      {expanded ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+    </button>
+    {expanded && <div className="px-5 pb-5 space-y-3 bg-white/60">{children}</div>}
+  </div>
+);
 
-  if (!consultation) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-gray-500 text-lg">No consultation data available</p>
-      </div>
-    );
-  }
+const Row = ({ label, value }) => (
+  <div className="flex items-start justify-between py-1.5 border-b border-slate-100 last:border-0">
+    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide w-40 flex-shrink-0">{label}</span>
+    <span className="text-sm text-slate-800 text-right flex-1">{value || <span className="text-slate-300 italic">Not recorded</span>}</span>
+  </div>
+);
 
-  const formatDate = (date) => {
-    if (!date) return 'N/A';
-    return new Date(date).toLocaleDateString('en-NG', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
+const ConsultationNotes = ({ consultation = null, isLoading = false, onEdit, onDelete, canEdit = true }) => {
+  const [expanded, setExpanded] = useState({ complaint:true, history:true, vitals:true, exam:false, diagnosis:true, followup:true });
+  const toggle = (id) => setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
 
-  const Section = ({ title, id, children }) => (
-    <div className="border-b border-gray-200 py-4">
-      <button
-        onClick={() => toggleSection(id)}
-        className="flex items-center justify-between w-full text-left font-semibold text-gray-900 hover:text-blue-600 transition-colors"
-      >
-        <span className="flex items-center gap-2">
-          {expandedSections[id] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-          {title}
-        </span>
-      </button>
-      {expandedSections[id] && <div className="mt-4 ml-6 space-y-2 text-sm text-gray-700">{children}</div>}
-    </div>
-  );
-
-  const InfoRow = ({ label, value }) => (
-    <div className="flex justify-between py-1">
-      <span className="font-medium text-gray-600">{label}:</span>
-      <span className="text-gray-900">{value || 'Not recorded'}</span>
-    </div>
-  );
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'Draft':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'Completed':
-        return 'bg-green-100 text-green-800';
-      case 'Signed':
-        return 'bg-blue-100 text-blue-800';
-      case 'Reviewed':
-        return 'bg-purple-100 text-purple-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
+  if (isLoading) return <div className="flex items-center justify-center h-64"><div className="w-10 h-10 border-teal-500 border-t-transparent rounded-full animate-spin" style={{borderWidth:3,borderStyle:'solid'}} /></div>;
+  if (!consultation) return <div className="text-center py-12 text-slate-400">No consultation data available</div>;
 
   return (
-    <div className="space-y-6">
-      {/* Header with Patient Info */}
-      <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-6 border border-blue-200">
-        <div className="flex justify-between items-start mb-4">
+    <div className="space-y-4">
+      {/* Patient Header */}
+      <div className="bg-gradient-to-br from-teal-600 to-teal-700 rounded-2xl p-6 text-white">
+        <div className="flex items-start justify-between mb-4">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">
-              {consultation.first_name} {consultation.last_name}
-            </h2>
-            <p className="text-gray-600">
-              Consultation Date: {formatDate(consultation.consultation_date)}
-            </p>
+            <h2 className="text-xl font-black tracking-tight">{consultation.first_name} {consultation.last_name}</h2>
+            <p className="text-teal-200 text-sm mt-0.5">Consultation — {fmtDate(consultation.consultation_date)}</p>
           </div>
-          <div className="flex gap-2">
-            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(consultation.status)}`}>
-              {consultation.status}
-            </span>
-          </div>
+          <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${STATUS[consultation.status] || STATUS.Draft}`}>
+            {consultation.status}
+          </span>
         </div>
-
-        {/* Quick Info */}
-        <div className="grid grid-cols-4 gap-4 text-sm">
-          <div>
-            <p className="text-gray-600">Patient ID</p>
-            <p className="font-semibold text-gray-900">#{consultation.patient_id}</p>
-          </div>
-          <div>
-            <p className="text-gray-600">Phone</p>
-            <p className="font-semibold text-gray-900">{consultation.phone}</p>
-          </div>
-          <div>
-            <p className="text-gray-600">Blood Type</p>
-            <p className="font-semibold text-gray-900">{consultation.blood_type || 'Unknown'}</p>
-          </div>
-          <div>
-            <p className="text-gray-600">Allergies</p>
-            <p className="font-semibold text-red-600">{consultation.allergies || 'None'}</p>
-          </div>
+        <div className="grid grid-cols-4 gap-4 pt-4 border-t border-white/20">
+          {[['Patient ID', `#${consultation.patient_id}`], ['Phone', consultation.phone], ['Blood Type', consultation.blood_type || 'Unknown'], ['Allergies', consultation.allergies || 'None']].map(([l,v]) => (
+            <div key={l}>
+              <p className="text-teal-300 text-xs uppercase tracking-wide">{l}</p>
+              <p className={`text-sm font-bold mt-0.5 ${l === 'Allergies' && consultation.allergies ? 'text-red-300' : 'text-white'}`}>{v}</p>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Action Buttons */}
+      {/* Actions */}
       {canEdit && (
         <div className="flex gap-2 justify-end">
-          {onEdit && (
-            <button
-              onClick={() => onEdit(consultation.consultation_id)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <Edit2 className="w-4 h-4" />
-              Edit
-            </button>
-          )}
-          {onDelete && (
-            <button
-              onClick={() => onDelete(consultation.consultation_id)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-            >
-              <Trash2 className="w-4 h-4" />
-              Delete
-            </button>
-          )}
-          <button className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-            <Download className="w-4 h-4" />
-            Download PDF
+          {onEdit && <button onClick={() => onEdit(consultation.consultation_id)}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 text-white text-sm font-semibold rounded-xl hover:bg-teal-700 transition-all shadow-sm">
+            <Edit2 className="w-4 h-4" /> Edit
+          </button>}
+          {onDelete && <button onClick={() => onDelete(consultation.consultation_id)}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-red-500 text-white text-sm font-semibold rounded-xl hover:bg-red-600 transition-all shadow-sm">
+            <Trash2 className="w-4 h-4" /> Delete
+          </button>}
+          <button className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 text-sm font-semibold rounded-xl hover:bg-slate-50 transition-all">
+            <Download className="w-4 h-4" /> PDF
           </button>
         </div>
       )}
 
-      {/* Medical Record Content */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-0">
-        {/* Chief Complaint */}
-        <Section title="Chief Complaint" id="chief_complaint">
-          <p className="text-gray-800 leading-relaxed">{consultation.chief_complaint}</p>
-        </Section>
-
-        {/* History */}
-        <Section title="History of Present Illness & Past Medical History" id="history">
-          <div className="space-y-3">
-            <div>
-              <p className="font-medium text-gray-700">History of Present Illness:</p>
-              <p className="text-gray-700 ml-4">{consultation.history_of_present_illness || 'Not recorded'}</p>
-            </div>
-            <div>
-              <p className="font-medium text-gray-700">Past Medical History:</p>
-              <p className="text-gray-700 ml-4">{consultation.past_medical_history || 'Not recorded'}</p>
-            </div>
-            <div>
-              <p className="font-medium text-gray-700">Current Medications:</p>
-              <p className="text-gray-700 ml-4">{consultation.medications || 'Not recorded'}</p>
-            </div>
-            {consultation.allergies && (
-              <div className="bg-red-50 border border-red-200 rounded p-3">
-                <p className="font-medium text-red-800">⚠️ Allergies: {consultation.allergies}</p>
-              </div>
-            )}
+      <Section icon={MessageSquare} title="Chief Complaint & History" color="text-blue-600" bg="bg-blue-50 border-blue-100" id="complaint" expanded={expanded.complaint} onToggle={toggle}>
+        <div className="space-y-3">
+          <div className="bg-white rounded-xl p-4 border border-blue-100">
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Chief Complaint</p>
+            <p className="text-sm text-slate-800">{consultation.chief_complaint}</p>
           </div>
-        </Section>
-
-        {/* Vital Signs */}
-        <Section title="Vital Signs" id="vitals">
-          <div className="grid grid-cols-2 gap-4">
-            <InfoRow label="Blood Pressure" value={consultation.vital_signs_bp} />
-            <InfoRow label="Temperature" value={consultation.vital_signs_temp && `${consultation.vital_signs_temp}°C`} />
-            <InfoRow label="Pulse" value={consultation.vital_signs_pulse && `${consultation.vital_signs_pulse} bpm`} />
-            <InfoRow label="Respiration" value={consultation.vital_signs_respiration && `${consultation.vital_signs_respiration}/min`} />
-          </div>
-        </Section>
-
-        {/* Physical Examination */}
-        <Section title="Physical Examination" id="examination">
-          <p className="text-gray-800 leading-relaxed">{consultation.physical_examination || 'Not recorded'}</p>
-        </Section>
-
-        {/* Diagnosis & Treatment */}
-        <Section title="Diagnosis & Treatment Plan" id="diagnosis">
-          <div className="space-y-3">
-            <div className="bg-blue-50 border border-blue-200 rounded p-4">
-              <p className="font-medium text-gray-700">Primary Diagnosis:</p>
-              <p className="text-lg font-semibold text-blue-900 mt-1">{consultation.diagnosis}</p>
-              {consultation.diagnosis_icd && (
-                <p className="text-sm text-gray-600 mt-1">ICD Code: {consultation.diagnosis_icd}</p>
-              )}
+          <Row label="HPI" value={consultation.history_of_present_illness} />
+          <Row label="Past Medical History" value={consultation.past_medical_history} />
+          <Row label="Current Medications" value={consultation.medications} />
+          {consultation.allergies && (
+            <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+              <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0" />
+              <p className="text-sm font-semibold text-red-700">Allergies: {consultation.allergies}</p>
             </div>
+          )}
+        </div>
+      </Section>
 
-            <div>
-              <p className="font-medium text-gray-700">Treatment Plan:</p>
-              <p className="text-gray-700 ml-4 whitespace-pre-wrap">{consultation.treatment_plan}</p>
+      <Section icon={Activity} title="Vital Signs" color="text-emerald-600" bg="bg-emerald-50 border-emerald-100" id="vitals" expanded={expanded.vitals} onToggle={toggle}>
+        <div className="grid grid-cols-2 gap-3">
+          {[['Blood Pressure', consultation.vital_signs_bp ? `${consultation.vital_signs_bp} mmHg` : null],
+            ['Temperature',   consultation.vital_signs_temp ? `${consultation.vital_signs_temp}°C` : null],
+            ['Pulse',         consultation.vital_signs_pulse ? `${consultation.vital_signs_pulse} bpm` : null],
+            ['Respiration',   consultation.vital_signs_respiration ? `${consultation.vital_signs_respiration}/min` : null]
+          ].map(([l,v]) => (
+            <div key={l} className="bg-white rounded-xl p-3 border border-emerald-100">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">{l}</p>
+              <p className={`text-lg font-black mt-0.5 ${v ? 'text-slate-800' : 'text-slate-300'}`}>{v || '—'}</p>
             </div>
+          ))}
+        </div>
+      </Section>
 
-            {consultation.medications_prescribed && (
-              <div className="bg-green-50 border border-green-200 rounded p-3">
-                <p className="font-medium text-gray-700">Medications Prescribed:</p>
-                <p className="text-gray-700 ml-4 whitespace-pre-wrap">{consultation.medications_prescribed}</p>
-              </div>
-            )}
+      <Section icon={Search} title="Physical Examination" color="text-amber-600" bg="bg-amber-50 border-amber-100" id="exam" expanded={expanded.exam} onToggle={toggle}>
+        <p className="text-sm text-slate-700 leading-relaxed">{consultation.physical_examination || <span className="text-slate-300 italic">Not recorded</span>}</p>
+      </Section>
 
-            {consultation.procedures && (
-              <div>
-                <p className="font-medium text-gray-700">Procedures:</p>
-                <p className="text-gray-700 ml-4">{consultation.procedures}</p>
-              </div>
-            )}
-          </div>
-        </Section>
-
-        {/* Follow-up & Referral */}
-        <Section title="Follow-up & Referral" id="followup">
-          <div className="space-y-3">
-            {consultation.follow_up_date && (
-              <InfoRow label="Follow-up Date" value={formatDate(consultation.follow_up_date)} />
-            )}
-            {consultation.follow_up_notes && (
-              <div>
-                <p className="font-medium text-gray-700">Follow-up Notes:</p>
-                <p className="text-gray-700 ml-4">{consultation.follow_up_notes}</p>
-              </div>
-            )}
-
-            {consultation.referral_needed === 1 && (
-              <div className="bg-orange-50 border border-orange-200 rounded p-3">
-                <p className="font-medium text-orange-800">⚠️ Referral Needed</p>
-                <p className="text-orange-700">Refer to: {consultation.referral_to || 'Not specified'}</p>
-              </div>
-            )}
-          </div>
-        </Section>
-
-        {/* Additional Notes */}
-        {consultation.notes && (
-          <div className="border-t border-gray-200 pt-4">
-            <p className="font-semibold text-gray-900 mb-2">Additional Notes</p>
-            <p className="text-gray-700 whitespace-pre-wrap">{consultation.notes}</p>
+      <Section icon={Stethoscope} title="Diagnosis & Treatment" color="text-rose-600" bg="bg-rose-50 border-rose-100" id="diagnosis" expanded={expanded.diagnosis} onToggle={toggle}>
+        <div className="bg-white rounded-xl p-4 border border-rose-100">
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">Primary Diagnosis</p>
+          <p className="text-xl font-black text-rose-700">{consultation.diagnosis}</p>
+          {consultation.diagnosis_icd && <p className="text-xs text-slate-400 mt-1">ICD: {consultation.diagnosis_icd}</p>}
+        </div>
+        <Row label="Treatment Plan" value={consultation.treatment_plan} />
+        {consultation.medications_prescribed && (
+          <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4">
+            <p className="text-xs font-bold text-emerald-600 uppercase tracking-wide mb-1">Medications Prescribed</p>
+            <p className="text-sm text-slate-700 whitespace-pre-wrap">{consultation.medications_prescribed}</p>
           </div>
         )}
+        {consultation.procedures && <Row label="Procedures" value={consultation.procedures} />}
+      </Section>
 
-        {/* Footer with timestamps */}
-        <div className="border-t border-gray-200 mt-6 pt-4 text-xs text-gray-500">
-          <p>Created: {formatDate(consultation.created_at)} | Last Updated: {formatDate(consultation.updated_at)}</p>
+      <Section icon={CalendarCheck} title="Follow-up & Referral" color="text-violet-600" bg="bg-violet-50 border-violet-100" id="followup" expanded={expanded.followup} onToggle={toggle}>
+        {consultation.follow_up_date && <Row label="Follow-up Date" value={fmtDate(consultation.follow_up_date)} />}
+        {consultation.follow_up_notes && <Row label="Instructions" value={consultation.follow_up_notes} />}
+        {consultation.referral_needed === 1 && (
+          <div className="flex items-center gap-2 bg-orange-50 border border-orange-200 rounded-xl px-4 py-3">
+            <AlertTriangle className="w-4 h-4 text-orange-500 flex-shrink-0" />
+            <p className="text-sm font-semibold text-orange-700">Referral needed — {consultation.referral_to || 'Specialist not specified'}</p>
+          </div>
+        )}
+      </Section>
+
+      {consultation.notes && (
+        <div className="bg-slate-50 rounded-2xl border border-slate-100 p-5">
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Additional Notes</p>
+          <p className="text-sm text-slate-700 whitespace-pre-wrap">{consultation.notes}</p>
         </div>
-      </div>
+      )}
+
+      <p className="text-xs text-slate-400 text-center pb-2">
+        Created: {fmtDate(consultation.created_at)} · Updated: {fmtDate(consultation.updated_at)}
+      </p>
     </div>
   );
 };

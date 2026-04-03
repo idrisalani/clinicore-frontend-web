@@ -1,488 +1,148 @@
 import React, { useState, useEffect } from 'react';
-// import { X } from 'lucide-react';
+import { User, MapPin, Heart, Shield, AlertCircle, Loader } from 'lucide-react';
 
-/**
- * Reusable Patient Form Component
- * Handles both Add and Edit modes
- */
-const PatientForm = ({
-  patient = null,
-  isLoading = false,
-  onSubmit = null,
-  onCancel = null,
-  mode = 'add', // 'add' or 'edit'
-}) => {
-  const [formData, setFormData] = useState({
-    first_name: '',
-    last_name: '',
-    email: '',
-    phone: '',
-    date_of_birth: '',
-    gender: '',
-    address: '',
-    city: '',
-    state: '',
-    zip_code: '',
-    blood_type: '',
-    allergies: '',
-    chronic_conditions: '',
-    insurance_provider: '',
-    insurance_policy_number: '',
-    emergency_contact_name: '',
-    emergency_contact_phone: '',
-    emergency_contact_relationship: '',
-  });
+const F = ({ label, error, children }) => (
+  <div>
+    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">{label}</label>
+    {children}
+    {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+  </div>
+);
 
+const Input = ({ error, ...props }) => (
+  <input {...props} className={`w-full px-3.5 py-2.5 text-sm rounded-xl border transition-all outline-none ${
+    error ? 'bg-red-50 border-red-300 focus:border-red-400 focus:ring-2 focus:ring-red-100'
+           : 'bg-slate-50 border-slate-200 focus:border-teal-400 focus:bg-white focus:ring-2 focus:ring-teal-100'}`} />
+);
+
+const Select = ({ children, ...props }) => (
+  <select {...props} className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 bg-slate-50 focus:border-teal-400 focus:bg-white focus:ring-2 focus:ring-teal-100 outline-none transition-all appearance-none cursor-pointer">
+    {children}
+  </select>
+);
+
+const Section = ({ icon: Icon, title, color = 'teal', children }) => {
+  const colors = {
+    teal:   'bg-teal-50 border-teal-100 text-teal-600',
+    blue:   'bg-blue-50 border-blue-100 text-blue-600',
+    rose:   'bg-rose-50 border-rose-100 text-rose-600',
+    purple: 'bg-purple-50 border-purple-100 text-purple-600',
+    amber:  'bg-amber-50 border-amber-100 text-amber-600',
+  };
+  return (
+    <div className={`rounded-2xl border p-5 ${colors[color]?.split(' ').slice(0,2).join(' ')} border-slate-100 bg-slate-50`}>
+      <div className="flex items-center gap-2 mb-4">
+        <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${colors[color]?.split(' ').slice(0,1).join(' ')}`}>
+          <Icon className={`w-4 h-4 ${colors[color]?.split(' ').slice(2).join(' ')}`} />
+        </div>
+        <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wider">{title}</h4>
+      </div>
+      {children}
+    </div>
+  );
+};
+
+const EMPTY_PATIENT = {
+  first_name:'', last_name:'', email:'', phone:'', date_of_birth:'', gender:'',
+  address:'', city:'', state:'', zip_code:'', blood_type:'', allergies:'',
+  chronic_conditions:'', insurance_provider:'', insurance_policy_number:'',
+  emergency_contact_name:'', emergency_contact_phone:'', emergency_contact_relationship:'',
+};
+
+const PatientForm = ({ patient = null, isLoading = false, onSubmit, onCancel, mode = 'add' }) => {
+  const [form, setForm] = useState(EMPTY_PATIENT);
   const [errors, setErrors] = useState({});
 
-  // Populate form when editing
   useEffect(() => {
     if (patient && mode === 'edit') {
-      setFormData({
-        first_name: patient.first_name || '',
-        last_name: patient.last_name || '',
-        email: patient.email || '',
-        phone: patient.phone || '',
-        date_of_birth: patient.date_of_birth || '',
-        gender: patient.gender || '',
-        address: patient.address || '',
-        city: patient.city || '',
-        state: patient.state || '',
-        zip_code: patient.zip_code || '',
-        blood_type: patient.blood_type || '',
-        allergies: patient.allergies || '',
-        chronic_conditions: patient.chronic_conditions || '',
-        insurance_provider: patient.insurance_provider || '',
-        insurance_policy_number: patient.insurance_policy_number || '',
-        emergency_contact_name: patient.emergency_contact_name || '',
-        emergency_contact_phone: patient.emergency_contact_phone || '',
-        emergency_contact_relationship: patient.emergency_contact_relationship || '',
-      });
+      setForm(f => ({ ...f, ...Object.fromEntries(Object.keys(EMPTY_PATIENT).map(k => [k, patient[k] || ''])) }));
     }
   }, [patient, mode]);
 
-  // Validate form
-  const validateForm = () => {
-    const newErrors = {};
-
-    if (!formData.first_name.trim()) {
-      newErrors.first_name = 'First name is required';
-    }
-    if (!formData.last_name.trim()) {
-      newErrors.last_name = 'Last name is required';
-    }
-    if (!formData.phone.trim()) {
-      newErrors.phone = 'Phone number is required';
-    }
-    if (!formData.date_of_birth) {
-      newErrors.date_of_birth = 'Date of birth is required';
-    }
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Invalid email address';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  // Handle input change
-  const handleChange = (e) => {
+  const set = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
-    // Clear error for this field
-    if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: '',
-      }));
-    }
+    setForm(f => ({ ...f, [name]: value }));
+    if (errors[name]) setErrors(ev => ({ ...ev, [name]: '' }));
   };
 
-  // Handle form submit
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    if (!validateForm()) {
-      console.log('❌ Form validation failed');
-      return;
-    }
-
-    console.log('✅ Form submitted:', formData);
-    if (onSubmit) {
-      onSubmit(formData);
-    }
+  const validate = () => {
+    const errs = {};
+    if (!form.first_name.trim()) errs.first_name = 'Required';
+    if (!form.last_name.trim())  errs.last_name  = 'Required';
+    if (!form.phone.trim())      errs.phone      = 'Required';
+    if (!form.date_of_birth)     errs.date_of_birth = 'Required';
+    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = 'Invalid email';
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
   };
+
+  const submit = (e) => { e.preventDefault(); if (validate() && onSubmit) onSubmit(form); };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Header Section */}
-      <div className="pb-4 border-b border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-900">
-          {mode === 'add' ? 'Add New Patient' : 'Edit Patient'}
-        </h3>
-        <p className="text-sm text-gray-600 mt-1">
-          {mode === 'add' 
-            ? 'Fill in the patient information below'
-            : 'Update patient information'}
-        </p>
-      </div>
+    <form onSubmit={submit} className="space-y-5">
+      <Section icon={User} title="Personal Information" color="teal">
+        <div className="grid grid-cols-2 gap-3">
+          <F label="First Name *" error={errors.first_name}><Input name="first_name" value={form.first_name} onChange={set} placeholder="Chioma" error={errors.first_name} /></F>
+          <F label="Last Name *"  error={errors.last_name}> <Input name="last_name"  value={form.last_name}  onChange={set} placeholder="Okafor" error={errors.last_name} /></F>
+          <F label="Email"        error={errors.email}>    <Input type="email" name="email" value={form.email} onChange={set} placeholder="chioma@clinic.ng" error={errors.email} /></F>
+          <F label="Phone *"      error={errors.phone}>    <Input type="tel" name="phone" value={form.phone} onChange={set} placeholder="+234-801-234-5678" error={errors.phone} /></F>
+          <F label="Date of Birth *" error={errors.date_of_birth}><Input type="date" name="date_of_birth" value={form.date_of_birth} onChange={set} error={errors.date_of_birth} /></F>
+          <F label="Gender"><Select name="gender" value={form.gender} onChange={set}><option value="">Select</option><option>Male</option><option>Female</option><option>Other</option></Select></F>
+        </div>
+      </Section>
 
-      {/* Form Sections */}
-      <div className="space-y-6">
-        {/* Personal Information */}
-        <div>
-          <h4 className="text-sm font-semibold text-gray-700 mb-4">
-            Personal Information
-          </h4>
-          <div className="grid grid-cols-2 gap-4">
-            {/* First Name */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                First Name *
-              </label>
-              <input
-                type="text"
-                name="first_name"
-                value={formData.first_name}
-                onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500 transition-colors ${
-                  errors.first_name ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="e.g., Chioma"
-              />
-              {errors.first_name && (
-                <p className="text-red-500 text-xs mt-1">{errors.first_name}</p>
-              )}
-            </div>
-
-            {/* Last Name */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Last Name *
-              </label>
-              <input
-                type="text"
-                name="last_name"
-                value={formData.last_name}
-                onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500 transition-colors ${
-                  errors.last_name ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="e.g., Okafor"
-              />
-              {errors.last_name && (
-                <p className="text-red-500 text-xs mt-1">{errors.last_name}</p>
-              )}
-            </div>
-
-            {/* Email */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Email
-              </label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500 transition-colors ${
-                  errors.email ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="e.g., chioma@clinic.ng"
-              />
-              {errors.email && (
-                <p className="text-red-500 text-xs mt-1">{errors.email}</p>
-              )}
-            </div>
-
-            {/* Phone */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Phone Number *
-              </label>
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500 transition-colors ${
-                  errors.phone ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="e.g., +234-801-234-5678"
-              />
-              {errors.phone && (
-                <p className="text-red-500 text-xs mt-1">{errors.phone}</p>
-              )}
-            </div>
-
-            {/* Date of Birth */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Date of Birth *
-              </label>
-              <input
-                type="date"
-                name="date_of_birth"
-                value={formData.date_of_birth}
-                onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500 transition-colors ${
-                  errors.date_of_birth ? 'border-red-500' : 'border-gray-300'
-                }`}
-              />
-              {errors.date_of_birth && (
-                <p className="text-red-500 text-xs mt-1">{errors.date_of_birth}</p>
-              )}
-            </div>
-
-            {/* Gender */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Gender
-              </label>
-              <select
-                name="gender"
-                value={formData.gender}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition-colors"
-              >
-                <option value="">Select Gender</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Address */}
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Address
-            </label>
-            <input
-              type="text"
-              name="address"
-              value={formData.address}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition-colors"
-              placeholder="Street address"
-            />
-          </div>
-
-          {/* City, State, Zip */}
-          <div className="grid grid-cols-3 gap-4 mt-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                City
-              </label>
-              <input
-                type="text"
-                name="city"
-                value={formData.city}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition-colors"
-                placeholder="Lagos"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                State
-              </label>
-              <input
-                type="text"
-                name="state"
-                value={formData.state}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition-colors"
-                placeholder="Lagos"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Zip Code
-              </label>
-              <input
-                type="text"
-                name="zip_code"
-                value={formData.zip_code}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition-colors"
-                placeholder="100001"
-              />
-            </div>
+      <Section icon={MapPin} title="Address" color="blue">
+        <div className="space-y-3">
+          <F label="Street Address"><Input name="address" value={form.address} onChange={set} placeholder="Street address" /></F>
+          <div className="grid grid-cols-3 gap-3">
+            <F label="City"> <Input name="city"     value={form.city}     onChange={set} placeholder="Lagos" /></F>
+            <F label="State"><Input name="state"    value={form.state}    onChange={set} placeholder="Lagos" /></F>
+            <F label="Zip">  <Input name="zip_code" value={form.zip_code} onChange={set} placeholder="100001" /></F>
           </div>
         </div>
+      </Section>
 
-        {/* Medical Information */}
-        <div>
-          <h4 className="text-sm font-semibold text-gray-700 mb-4">
-            Medical Information
-          </h4>
-          <div className="grid grid-cols-2 gap-4">
-            {/* Blood Type */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Blood Type
-              </label>
-              <select
-                name="blood_type"
-                value={formData.blood_type}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition-colors"
-              >
-                <option value="">Select Blood Type</option>
-                <option value="O+">O+</option>
-                <option value="O-">O-</option>
-                <option value="A+">A+</option>
-                <option value="A-">A-</option>
-                <option value="B+">B+</option>
-                <option value="B-">B-</option>
-                <option value="AB+">AB+</option>
-                <option value="AB-">AB-</option>
-                <option value="Unknown">Unknown</option>
-              </select>
-            </div>
+      <Section icon={Heart} title="Medical Information" color="rose">
+        <div className="grid grid-cols-2 gap-3">
+          <F label="Blood Type">
+            <Select name="blood_type" value={form.blood_type} onChange={set}>
+              <option value="">Unknown</option>
+              {['O+','O-','A+','A-','B+','B-','AB+','AB-'].map(t => <option key={t}>{t}</option>)}
+            </Select>
+          </F>
+          <F label="Allergies"><Input name="allergies" value={form.allergies} onChange={set} placeholder="Penicillin, Peanuts" /></F>
+          <F label="Chronic Conditions" ><div className="col-span-2"><Input name="chronic_conditions" value={form.chronic_conditions} onChange={set} placeholder="Diabetes, Hypertension" /></div></F>
+        </div>
+        <div className="col-span-2 mt-3">
+          <F label="Chronic Conditions"><Input name="chronic_conditions" value={form.chronic_conditions} onChange={set} placeholder="Diabetes, Hypertension" /></F>
+        </div>
+      </Section>
 
-            {/* Allergies */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Allergies
-              </label>
-              <input
-                type="text"
-                name="allergies"
-                value={formData.allergies}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition-colors"
-                placeholder="e.g., Penicillin, Peanuts"
-              />
-            </div>
+      <Section icon={Shield} title="Insurance" color="purple">
+        <div className="grid grid-cols-2 gap-3">
+          <F label="Provider"><Input name="insurance_provider" value={form.insurance_provider} onChange={set} placeholder="NHIS" /></F>
+          <F label="Policy Number"><Input name="insurance_policy_number" value={form.insurance_policy_number} onChange={set} placeholder="Policy number" /></F>
+        </div>
+      </Section>
 
-            {/* Chronic Conditions */}
-            <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Chronic Conditions
-              </label>
-              <input
-                type="text"
-                name="chronic_conditions"
-                value={formData.chronic_conditions}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition-colors"
-                placeholder="e.g., Diabetes, Hypertension"
-              />
-            </div>
+      <Section icon={AlertCircle} title="Emergency Contact" color="amber">
+        <div className="grid grid-cols-2 gap-3">
+          <F label="Full Name"><Input name="emergency_contact_name" value={form.emergency_contact_name} onChange={set} placeholder="Full name" /></F>
+          <F label="Phone"><Input type="tel" name="emergency_contact_phone" value={form.emergency_contact_phone} onChange={set} placeholder="Phone number" /></F>
+          <div className="col-span-2">
+            <F label="Relationship"><Input name="emergency_contact_relationship" value={form.emergency_contact_relationship} onChange={set} placeholder="Spouse, Parent, Sibling" /></F>
           </div>
         </div>
+      </Section>
 
-        {/* Insurance Information */}
-        <div>
-          <h4 className="text-sm font-semibold text-gray-700 mb-4">
-            Insurance Information
-          </h4>
-          <div className="grid grid-cols-2 gap-4">
-            {/* Insurance Provider */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Insurance Provider
-              </label>
-              <input
-                type="text"
-                name="insurance_provider"
-                value={formData.insurance_provider}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition-colors"
-                placeholder="e.g., NHIS"
-              />
-            </div>
-
-            {/* Policy Number */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Policy Number
-              </label>
-              <input
-                type="text"
-                name="insurance_policy_number"
-                value={formData.insurance_policy_number}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition-colors"
-                placeholder="Policy number"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Emergency Contact */}
-        <div>
-          <h4 className="text-sm font-semibold text-gray-700 mb-4">
-            Emergency Contact
-          </h4>
-          <div className="grid grid-cols-2 gap-4">
-            {/* Emergency Contact Name */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Contact Name
-              </label>
-              <input
-                type="text"
-                name="emergency_contact_name"
-                value={formData.emergency_contact_name}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition-colors"
-                placeholder="Full name"
-              />
-            </div>
-
-            {/* Emergency Contact Phone */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Contact Phone
-              </label>
-              <input
-                type="tel"
-                name="emergency_contact_phone"
-                value={formData.emergency_contact_phone}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition-colors"
-                placeholder="Phone number"
-              />
-            </div>
-
-            {/* Relationship */}
-            <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Relationship
-              </label>
-              <input
-                type="text"
-                name="emergency_contact_relationship"
-                value={formData.emergency_contact_relationship}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition-colors"
-                placeholder="e.g., Spouse, Parent, Sibling"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Form Actions */}
-      <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
-        >
+      <div className="flex justify-end gap-3 pt-2">
+        <button type="button" onClick={onCancel}
+          className="px-5 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all">
           Cancel
         </button>
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-        >
+        <button type="submit" disabled={isLoading}
+          className="px-5 py-2.5 text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-xl shadow-sm transition-all disabled:opacity-50 flex items-center gap-2">
+          {isLoading && <Loader className="w-4 h-4 animate-spin" />}
           {isLoading ? 'Saving...' : mode === 'add' ? 'Create Patient' : 'Save Changes'}
         </button>
       </div>

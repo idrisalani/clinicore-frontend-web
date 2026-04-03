@@ -1,511 +1,172 @@
 import React, { useState, useEffect } from 'react';
+import { MessageSquare, Activity, Search, Stethoscope, CalendarCheck, Loader } from 'lucide-react';
 
-/**
- * Consultation Form Component
- * Handles recording clinical notes and consultation details
- */
-const ConsultationForm = ({
-  consultation = null,
-  patientId = null,
-  appointmentId = null,
-  isLoading = false,
-  onSubmit = null,
-  onCancel = null,
-  mode = 'add', // 'add' or 'edit'
-}) => {
-  const [formData, setFormData] = useState({
-    appointment_id: appointmentId || '',
-    patient_id: patientId || '',
-    doctor_id: '',
-    consultation_date: new Date().toISOString().split('T')[0],
-    chief_complaint: '',
-    history_of_present_illness: '',
-    past_medical_history: '',
-    medications: '',
-    allergies: '',
-    vital_signs_bp: '',
-    vital_signs_temp: '',
-    vital_signs_pulse: '',
-    vital_signs_respiration: '',
-    physical_examination: '',
-    diagnosis: '',
-    diagnosis_icd: '',
-    treatment_plan: '',
-    medications_prescribed: '',
-    procedures: '',
-    follow_up_date: '',
-    follow_up_notes: '',
-    referral_needed: 0,
-    referral_to: '',
-    notes: '',
-    status: 'Draft',
-  });
+const F = ({ label, error, children, className = '' }) => (
+  <div className={className}>
+    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">{label}</label>
+    {children}
+    {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+  </div>
+);
+const inp = (err = false) => `w-full px-3.5 py-2.5 text-sm rounded-xl border outline-none transition-all ${err ? 'bg-red-50 border-red-300 focus:border-red-400' : 'bg-slate-50 border-slate-200 focus:border-teal-400 focus:bg-white focus:ring-2 focus:ring-teal-100'}`;
+const ta  = (err = false, rows = 3) => `w-full px-3.5 py-2.5 text-sm rounded-xl border outline-none transition-all resize-none ${err ? 'bg-red-50 border-red-300' : 'bg-slate-50 border-slate-200 focus:border-teal-400 focus:bg-white focus:ring-2 focus:ring-teal-100'}`;
+const sel = `w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 bg-slate-50 focus:border-teal-400 focus:bg-white focus:ring-2 focus:ring-teal-100 outline-none transition-all appearance-none cursor-pointer`;
 
+const Section = ({ icon: Icon, title, color, bg, children }) => (
+  <div className={`rounded-2xl border p-5 space-y-3 ${bg}`}>
+    <div className="flex items-center gap-2 pb-2 border-b border-black/5">
+      <Icon className={`w-4 h-4 ${color}`} />
+      <h4 className={`text-xs font-bold uppercase tracking-wider ${color}`}>{title}</h4>
+    </div>
+    {children}
+  </div>
+);
+
+const empty = {
+  appointment_id:'', patient_id:'', doctor_id:'',
+  consultation_date: new Date().toISOString().split('T')[0],
+  chief_complaint:'', history_of_present_illness:'',
+  past_medical_history:'', medications:'', allergies:'',
+  vital_signs_bp:'', vital_signs_temp:'', vital_signs_pulse:'', vital_signs_respiration:'',
+  physical_examination:'', diagnosis:'', diagnosis_icd:'',
+  treatment_plan:'', medications_prescribed:'', procedures:'',
+  follow_up_date:'', follow_up_notes:'', referral_needed:0, referral_to:'',
+  notes:'', status:'Draft',
+};
+
+const ConsultationForm = ({ consultation = null, patientId = null, appointmentId = null, isLoading = false, onSubmit, onCancel, mode = 'add' }) => {
+  const [form, setForm] = useState({ ...empty, appointment_id: appointmentId || '', patient_id: patientId || '' });
   const [errors, setErrors] = useState({});
 
-  // Populate form when editing
   useEffect(() => {
     if (consultation && mode === 'edit') {
-      setFormData({
-        appointment_id: consultation.appointment_id || '',
-        patient_id: consultation.patient_id || '',
-        doctor_id: consultation.doctor_id || '',
-        consultation_date: consultation.consultation_date || new Date().toISOString().split('T')[0],
-        chief_complaint: consultation.chief_complaint || '',
-        history_of_present_illness: consultation.history_of_present_illness || '',
-        past_medical_history: consultation.past_medical_history || '',
-        medications: consultation.medications || '',
-        allergies: consultation.allergies || '',
-        vital_signs_bp: consultation.vital_signs_bp || '',
-        vital_signs_temp: consultation.vital_signs_temp || '',
-        vital_signs_pulse: consultation.vital_signs_pulse || '',
-        vital_signs_respiration: consultation.vital_signs_respiration || '',
-        physical_examination: consultation.physical_examination || '',
-        diagnosis: consultation.diagnosis || '',
-        diagnosis_icd: consultation.diagnosis_icd || '',
-        treatment_plan: consultation.treatment_plan || '',
-        medications_prescribed: consultation.medications_prescribed || '',
-        procedures: consultation.procedures || '',
-        follow_up_date: consultation.follow_up_date || '',
-        follow_up_notes: consultation.follow_up_notes || '',
-        referral_needed: consultation.referral_needed || 0,
-        referral_to: consultation.referral_to || '',
-        notes: consultation.notes || '',
-        status: consultation.status || 'Draft',
-      });
+      setForm(f => ({ ...f, ...Object.fromEntries(Object.keys(empty).map(k => [k, consultation[k] ?? empty[k]])) }));
     }
   }, [consultation, mode]);
 
-  // Validate form
-  const validateForm = () => {
-    const newErrors = {};
-
-    if (!formData.patient_id) {
-      newErrors.patient_id = 'Patient is required';
-    }
-    if (!formData.consultation_date) {
-      newErrors.consultation_date = 'Consultation date is required';
-    }
-    if (!formData.chief_complaint.trim()) {
-      newErrors.chief_complaint = 'Chief complaint is required';
-    }
-    if (!formData.diagnosis.trim()) {
-      newErrors.diagnosis = 'Diagnosis is required';
-    }
-    if (!formData.treatment_plan.trim()) {
-      newErrors.treatment_plan = 'Treatment plan is required';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  // Handle input change
-  const handleChange = (e) => {
+  const set = (e) => {
     const { name, value, type } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? (e.target.checked ? 1 : 0) : value,
-    }));
-    if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: '',
-      }));
-    }
+    setForm(f => ({ ...f, [name]: type === 'checkbox' ? (e.target.checked ? 1 : 0) : value }));
+    if (errors[name]) setErrors(ev => ({ ...ev, [name]: '' }));
   };
 
-  // Handle form submit
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    if (!validateForm()) {
-      console.log('❌ Form validation failed');
-      return;
-    }
-
-    console.log('✅ Form submitted:', formData);
-    if (onSubmit) {
-      onSubmit(formData);
-    }
+  const validate = () => {
+    const errs = {};
+    if (!form.patient_id)             errs.patient_id = 'Required';
+    if (!form.chief_complaint.trim()) errs.chief_complaint = 'Required';
+    if (!form.diagnosis.trim())       errs.diagnosis = 'Required';
+    if (!form.treatment_plan.trim())  errs.treatment_plan = 'Required';
+    setErrors(errs); return Object.keys(errs).length === 0;
   };
+
+  const submit = (e) => { e.preventDefault(); if (validate() && onSubmit) onSubmit(form); };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Header */}
-      <div className="pb-4 border-b border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-900">
-          {mode === 'add' ? 'Record Consultation' : 'Edit Consultation'}
-        </h3>
-        <p className="text-sm text-gray-600 mt-1">
-          Document clinical notes and treatment details
-        </p>
+    <form onSubmit={submit} className="space-y-4">
+      {/* Patient & Date */}
+      <div className="grid grid-cols-2 gap-3">
+        <F label="Patient ID *" error={errors.patient_id}>
+          <input type="number" name="patient_id" value={form.patient_id} onChange={set} className={inp(errors.patient_id)} placeholder="Patient ID" />
+        </F>
+        <F label="Consultation Date">
+          <input type="date" name="consultation_date" value={form.consultation_date} onChange={set} className={inp()} />
+        </F>
       </div>
 
-      {/* Chief Complaint & HPI Section */}
-      <div className="space-y-4 border rounded-lg p-4 bg-blue-50">
-        <h4 className="font-semibold text-gray-900">Chief Complaint & History</h4>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Chief Complaint *
-          </label>
-          <textarea
-            name="chief_complaint"
-            value={formData.chief_complaint}
-            onChange={handleChange}
-            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500 ${
-              errors.chief_complaint ? 'border-red-500' : 'border-gray-300'
-            }`}
-            placeholder="Main reason for consultation"
-            rows="2"
-          />
-          {errors.chief_complaint && (
-            <p className="text-red-500 text-xs mt-1">{errors.chief_complaint}</p>
-          )}
+      <Section icon={MessageSquare} title="Chief Complaint & History" color="text-blue-600" bg="bg-blue-50 border-blue-100">
+        <F label="Chief Complaint *" error={errors.chief_complaint}>
+          <textarea name="chief_complaint" value={form.chief_complaint} onChange={set} rows={2} className={ta(errors.chief_complaint)} placeholder="Main reason for consultation" />
+        </F>
+        <F label="History of Present Illness">
+          <textarea name="history_of_present_illness" value={form.history_of_present_illness} onChange={set} rows={3} className={ta()} placeholder="Detailed history" />
+        </F>
+        <div className="grid grid-cols-2 gap-3">
+          <F label="Past Medical History">
+            <textarea name="past_medical_history" value={form.past_medical_history} onChange={set} rows={2} className={ta()} placeholder="Previous illnesses, surgeries" />
+          </F>
+          <F label="Current Medications">
+            <textarea name="medications" value={form.medications} onChange={set} rows={2} className={ta()} placeholder="Current medications & dosages" />
+          </F>
         </div>
+        <F label="Allergies">
+          <input name="allergies" value={form.allergies} onChange={set} className={inp()} placeholder="Known allergies" />
+        </F>
+      </Section>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            History of Present Illness
-          </label>
-          <textarea
-            name="history_of_present_illness"
-            value={formData.history_of_present_illness}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-            placeholder="Detailed history of current illness"
-            rows="3"
-          />
+      <Section icon={Activity} title="Vital Signs" color="text-emerald-600" bg="bg-emerald-50 border-emerald-100">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[['BP (mmHg)','vital_signs_bp','e.g., 120/80'],['Temp (°C)','vital_signs_temp','37.0'],['Pulse (bpm)','vital_signs_pulse','72'],['Respiration/min','vital_signs_respiration','16']].map(([lbl,name,ph]) => (
+            <F key={name} label={lbl}>
+              <input name={name} value={form[name]} onChange={set} className={inp()} placeholder={ph} />
+            </F>
+          ))}
         </div>
+      </Section>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Past Medical History
-            </label>
-            <textarea
-              name="past_medical_history"
-              value={formData.past_medical_history}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-              placeholder="Previous illnesses, surgeries"
-              rows="2"
-            />
-          </div>
+      <Section icon={Search} title="Physical Examination" color="text-amber-600" bg="bg-amber-50 border-amber-100">
+        <F label="Findings">
+          <textarea name="physical_examination" value={form.physical_examination} onChange={set} rows={3} className={ta()} placeholder="Physical examination findings" />
+        </F>
+      </Section>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Current Medications
-            </label>
-            <textarea
-              name="medications"
-              value={formData.medications}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-              placeholder="Current medications and dosages"
-              rows="2"
-            />
-          </div>
+      <Section icon={Stethoscope} title="Diagnosis & Treatment" color="text-rose-600" bg="bg-rose-50 border-rose-100">
+        <div className="grid grid-cols-2 gap-3">
+          <F label="Diagnosis *" error={errors.diagnosis}>
+            <input name="diagnosis" value={form.diagnosis} onChange={set} className={inp(errors.diagnosis)} placeholder="Primary diagnosis" />
+          </F>
+          <F label="ICD Code">
+            <input name="diagnosis_icd" value={form.diagnosis_icd} onChange={set} className={inp()} placeholder="e.g., J45.901" />
+          </F>
         </div>
+        <F label="Treatment Plan *" error={errors.treatment_plan}>
+          <textarea name="treatment_plan" value={form.treatment_plan} onChange={set} rows={3} className={ta(errors.treatment_plan)} placeholder="Recommended treatment plan" />
+        </F>
+        <F label="Medications Prescribed">
+          <textarea name="medications_prescribed" value={form.medications_prescribed} onChange={set} rows={2} className={ta()} placeholder="List of prescribed medications" />
+        </F>
+        <F label="Procedures">
+          <textarea name="procedures" value={form.procedures} onChange={set} rows={2} className={ta()} placeholder="Procedures performed or recommended" />
+        </F>
+      </Section>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Allergies
-          </label>
-          <input
-            type="text"
-            name="allergies"
-            value={formData.allergies}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-            placeholder="Known allergies"
-          />
+      <Section icon={CalendarCheck} title="Follow-up & Referral" color="text-violet-600" bg="bg-violet-50 border-violet-100">
+        <div className="grid grid-cols-2 gap-3">
+          <F label="Follow-up Date">
+            <input type="date" name="follow_up_date" value={form.follow_up_date} onChange={set} className={inp()} />
+          </F>
+          <F label="Follow-up Notes">
+            <input name="follow_up_notes" value={form.follow_up_notes} onChange={set} className={inp()} placeholder="Follow-up instructions" />
+          </F>
         </div>
-      </div>
-
-      {/* Vital Signs Section */}
-      <div className="space-y-4 border rounded-lg p-4 bg-green-50">
-        <h4 className="font-semibold text-gray-900">Vital Signs</h4>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Blood Pressure (mmHg)
-            </label>
-            <input
-              type="text"
-              name="vital_signs_bp"
-              value={formData.vital_signs_bp}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-              placeholder="e.g., 120/80"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Temperature (°C)
-            </label>
-            <input
-              type="text"
-              name="vital_signs_temp"
-              value={formData.vital_signs_temp}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-              placeholder="e.g., 37.0"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Pulse (bpm)
-            </label>
-            <input
-              type="text"
-              name="vital_signs_pulse"
-              value={formData.vital_signs_pulse}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-              placeholder="e.g., 72"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Respiration (breaths/min)
-            </label>
-            <input
-              type="text"
-              name="vital_signs_respiration"
-              value={formData.vital_signs_respiration}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-              placeholder="e.g., 16"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Physical Examination */}
-      <div className="space-y-4 border rounded-lg p-4 bg-yellow-50">
-        <h4 className="font-semibold text-gray-900">Physical Examination</h4>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Findings
-          </label>
-          <textarea
-            name="physical_examination"
-            value={formData.physical_examination}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-            placeholder="Physical examination findings"
-            rows="3"
-          />
-        </div>
-      </div>
-
-      {/* Diagnosis & Treatment Section */}
-      <div className="space-y-4 border rounded-lg p-4 bg-red-50">
-        <h4 className="font-semibold text-gray-900">Diagnosis & Treatment</h4>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Diagnosis *
-            </label>
-            <input
-              type="text"
-              name="diagnosis"
-              value={formData.diagnosis}
-              onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500 ${
-                errors.diagnosis ? 'border-red-500' : 'border-gray-300'
-              }`}
-              placeholder="Primary diagnosis"
-            />
-            {errors.diagnosis && (
-              <p className="text-red-500 text-xs mt-1">{errors.diagnosis}</p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              ICD Code (Optional)
-            </label>
-            <input
-              type="text"
-              name="diagnosis_icd"
-              value={formData.diagnosis_icd}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-              placeholder="e.g., J45.901"
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Treatment Plan *
-          </label>
-          <textarea
-            name="treatment_plan"
-            value={formData.treatment_plan}
-            onChange={handleChange}
-            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500 ${
-              errors.treatment_plan ? 'border-red-500' : 'border-gray-300'
-            }`}
-            placeholder="Recommended treatment plan"
-            rows="3"
-          />
-          {errors.treatment_plan && (
-            <p className="text-red-500 text-xs mt-1">{errors.treatment_plan}</p>
-          )}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Medications Prescribed
-          </label>
-          <textarea
-            name="medications_prescribed"
-            value={formData.medications_prescribed}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-            placeholder="List of prescribed medications"
-            rows="2"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Procedures (if any)
-          </label>
-          <textarea
-            name="procedures"
-            value={formData.procedures}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-            placeholder="Any procedures performed or recommended"
-            rows="2"
-          />
-        </div>
-      </div>
-
-      {/* Follow-up & Referral Section */}
-      <div className="space-y-4 border rounded-lg p-4 bg-purple-50">
-        <h4 className="font-semibold text-gray-900">Follow-up & Referral</h4>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Follow-up Date
-            </label>
-            <input
-              type="date"
-              name="follow_up_date"
-              value={formData.follow_up_date}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Follow-up Notes
-            </label>
-            <input
-              type="text"
-              name="follow_up_notes"
-              value={formData.follow_up_notes}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-              placeholder="Follow-up instructions"
-            />
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            name="referral_needed"
-            checked={formData.referral_needed === 1}
-            onChange={handleChange}
-            className="w-4 h-4 border border-gray-300 rounded text-blue-600"
-            id="referral_needed"
-          />
-          <label htmlFor="referral_needed" className="text-sm text-gray-700">
-            Referral needed
-          </label>
-        </div>
-
-        {formData.referral_needed === 1 && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Referral To (Specialist)
-            </label>
-            <input
-              type="text"
-              name="referral_to"
-              value={formData.referral_to}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-              placeholder="Specialist type, e.g., Cardiology"
-            />
-          </div>
+        <label className="flex items-center gap-2.5 cursor-pointer">
+          <input type="checkbox" name="referral_needed" checked={form.referral_needed === 1} onChange={set} className="w-4 h-4 accent-violet-600 rounded" />
+          <span className="text-sm text-slate-700 font-medium">Referral needed</span>
+        </label>
+        {form.referral_needed === 1 && (
+          <F label="Refer to (Specialist)">
+            <input name="referral_to" value={form.referral_to} onChange={set} className={inp()} placeholder="e.g., Cardiology" />
+          </F>
         )}
-      </div>
+      </Section>
 
-      {/* General Notes & Status */}
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Additional Notes
-          </label>
-          <textarea
-            name="notes"
-            value={formData.notes}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-            placeholder="Any additional notes"
-            rows="2"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Status
-          </label>
-          <select
-            name="status"
-            value={formData.status}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-          >
-            <option value="Draft">Draft</option>
-            <option value="Completed">Completed</option>
-            <option value="Signed">Signed</option>
-            <option value="Reviewed">Reviewed</option>
+      <div className="grid grid-cols-2 gap-3">
+        <F label="Additional Notes">
+          <textarea name="notes" value={form.notes} onChange={set} rows={2} className={ta()} placeholder="Any additional notes" />
+        </F>
+        <F label="Status">
+          <select name="status" value={form.status} onChange={set} className={sel}>
+            {['Draft','Completed','Signed','Reviewed'].map(s => <option key={s}>{s}</option>)}
           </select>
-        </div>
+        </F>
       </div>
 
-      {/* Form Actions */}
-      <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isLoading ? 'Saving...' : mode === 'add' ? 'Record Consultation' : 'Save Changes'}
+      <div className="flex justify-end gap-3 pt-2">
+        <button type="button" onClick={onCancel}
+          className="px-5 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all">Cancel</button>
+        <button type="submit" disabled={isLoading}
+          className="px-5 py-2.5 text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-xl shadow-sm transition-all disabled:opacity-50 flex items-center gap-2">
+          {isLoading && <Loader className="w-4 h-4 animate-spin" />}
+          {isLoading ? 'Saving…' : mode === 'add' ? 'Record Consultation' : 'Save Changes'}
         </button>
       </div>
     </form>

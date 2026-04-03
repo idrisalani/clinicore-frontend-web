@@ -1,16 +1,23 @@
 import React, { useState } from 'react';
+import { CreditCard, Loader } from 'lucide-react';
 
-/**
- * Payment Form Component
- * For recording payments against invoices
- */
-const PaymentForm = ({
-  invoice = null,
-  isLoading = false,
-  onSubmit = null,
-  onCancel = null,
-}) => {
-  const [formData, setFormData] = useState({
+const F = ({ label, error, children }) => (
+  <div>
+    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">{label}</label>
+    {children}
+    {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+  </div>
+);
+const inp = (err=false,pre=false) => `w-full ${pre?'pl-8':'px-3.5'} pr-3.5 py-2.5 text-sm rounded-xl border outline-none transition-all ${err ? 'bg-red-50 border-red-300' : 'bg-slate-50 border-slate-200 focus:border-teal-400 focus:bg-white focus:ring-2 focus:ring-teal-100'}`;
+const sel = `w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 bg-slate-50 focus:border-teal-400 focus:bg-white focus:ring-2 focus:ring-teal-100 outline-none transition-all appearance-none cursor-pointer`;
+const ta  = `w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 bg-slate-50 focus:border-teal-400 focus:bg-white focus:ring-2 focus:ring-teal-100 outline-none transition-all resize-none`;
+
+const fmt = (v) => `₦${parseFloat(v||0).toLocaleString('en-NG',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+
+const METHODS = ['Cash','Bank Transfer','Card','Cheque','Mobile Money','Other'];
+
+const PaymentForm = ({ invoice=null, isLoading=false, onSubmit, onCancel }) => {
+  const [form, setForm] = useState({
     invoice_id: invoice?.invoice_id || '',
     patient_id: invoice?.patient_id || '',
     payment_date: new Date().toISOString().split('T')[0],
@@ -19,222 +26,87 @@ const PaymentForm = ({
     reference_number: '',
     notes: '',
   });
-
   const [errors, setErrors] = useState({});
 
-  const paymentMethods = [
-    'Cash',
-    'Bank Transfer',
-    'Card',
-    'Cheque',
-    'Mobile Money',
-    'Other',
-  ];
+  const remaining = invoice ? Math.max(0, (invoice.total_amount||0) - (invoice.amount_paid||0)) : 0;
 
-  // Validate form
-  const validateForm = () => {
-    const newErrors = {};
-
-    if (!formData.invoice_id) {
-      newErrors.invoice_id = 'Invoice is required';
-    }
-    if (!formData.amount_paid || parseFloat(formData.amount_paid) <= 0) {
-      newErrors.amount_paid = 'Amount must be greater than 0';
-    }
-    if (!formData.payment_date) {
-      newErrors.payment_date = 'Payment date is required';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  // Handle input change
-  const handleChange = (e) => {
+  const set = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: name === 'amount_paid' ? parseFloat(value) || 0 : value,
-    }));
-    if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: '',
-      }));
-    }
+    setForm(f => ({ ...f, [name]: name === 'amount_paid' ? parseFloat(value)||0 : value }));
+    if (errors[name]) setErrors(ev => ({ ...ev, [name]: '' }));
   };
 
-  // Handle form submit
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    if (!validateForm()) {
-      console.log('❌ Form validation failed');
-      return;
-    }
-
-    console.log('✅ Form submitted:', formData);
-    if (onSubmit) {
-      onSubmit(formData);
-    }
+  const validate = () => {
+    const errs = {};
+    if (!form.invoice_id)                             errs.invoice_id = 'Required';
+    if (!form.amount_paid || parseFloat(form.amount_paid) <= 0) errs.amount_paid = 'Must be greater than 0';
+    if (!form.payment_date)                           errs.payment_date = 'Required';
+    setErrors(errs); return Object.keys(errs).length === 0;
   };
 
-  const formatCurrency = (value) => {
-    return `₦${parseFloat(value || 0).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  };
-
-  const remainingAmount = invoice 
-    ? Math.max(0, (invoice.total_amount || 0) - (invoice.amount_paid || 0))
-    : 0;
+  const submit = (e) => { e.preventDefault(); if (validate() && onSubmit) onSubmit(form); };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Header */}
-      <div className="pb-4 border-b border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-900">Record Payment</h3>
-        <p className="text-sm text-gray-600 mt-1">
-          Record payment received for invoice
-        </p>
-      </div>
-
+    <form onSubmit={submit} className="space-y-4">
       {/* Invoice Summary */}
       {invoice && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2">
-          <div className="flex justify-between">
-            <span className="text-gray-700">Invoice:</span>
-            <span className="font-semibold text-gray-900">{invoice.invoice_number}</span>
+        <div className="bg-gradient-to-br from-teal-600 to-teal-700 rounded-2xl p-5 text-white">
+          <div className="flex items-center gap-2 mb-4">
+            <CreditCard className="w-4 h-4 text-teal-200" />
+            <p className="text-xs font-bold text-teal-200 uppercase tracking-wider">Invoice Summary</p>
           </div>
-          <div className="flex justify-between">
-            <span className="text-gray-700">Invoice Total:</span>
-            <span className="font-semibold text-gray-900">{formatCurrency(invoice.total_amount)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-700">Already Paid:</span>
-            <span className="font-semibold text-gray-900">{formatCurrency(invoice.amount_paid || 0)}</span>
-          </div>
-          <div className="border-t border-blue-200 pt-2 flex justify-between">
-            <span className="text-gray-700 font-semibold">Remaining:</span>
-            <span className="font-bold text-blue-600 text-lg">{formatCurrency(remainingAmount)}</span>
+          <div className="space-y-2">
+            {[['Invoice', invoice.invoice_number],['Total', fmt(invoice.total_amount)],['Already Paid', fmt(invoice.amount_paid||0)]].map(([l,v]) => (
+              <div key={l} className="flex justify-between items-center">
+                <span className="text-teal-200 text-sm">{l}</span>
+                <span className="font-semibold text-sm">{v}</span>
+              </div>
+            ))}
+            <div className="border-t border-white/20 pt-2 flex justify-between items-center">
+              <span className="text-teal-200 font-semibold">Outstanding</span>
+              <span className="text-2xl font-black">{fmt(remaining)}</span>
+            </div>
           </div>
         </div>
       )}
 
       {/* Payment Details */}
-      <div className="space-y-4 border rounded-lg p-4 bg-green-50">
-        <h4 className="font-semibold text-gray-900">Payment Details</h4>
+      <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-5 space-y-3">
+        <h4 className="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-3">Payment Details</h4>
 
-        {/* Payment Date */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Payment Date *
-          </label>
-          <input
-            type="date"
-            name="payment_date"
-            value={formData.payment_date}
-            onChange={handleChange}
-            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500 ${
-              errors.payment_date ? 'border-red-500' : 'border-gray-300'
-            }`}
-          />
-          {errors.payment_date && (
-            <p className="text-red-500 text-xs mt-1">{errors.payment_date}</p>
-          )}
-        </div>
+        <F label="Payment Date *" error={errors.payment_date}>
+          <input type="date" name="payment_date" value={form.payment_date} onChange={set} className={inp(errors.payment_date)} />
+        </F>
 
-        {/* Amount Paid */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Amount Paid *
-          </label>
+        <F label="Amount Paid (₦) *" error={errors.amount_paid}>
           <div className="relative">
-            <span className="absolute left-3 top-2 text-gray-600 font-semibold">₦</span>
-            <input
-              type="number"
-              name="amount_paid"
-              value={formData.amount_paid}
-              onChange={handleChange}
-              className={`w-full pl-8 pr-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500 ${
-                errors.amount_paid ? 'border-red-500' : 'border-gray-300'
-              }`}
-              placeholder="0.00"
-              step="0.01"
-              max={remainingAmount}
-            />
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-semibold">₦</span>
+            <input type="number" name="amount_paid" value={form.amount_paid} onChange={set}
+              className={inp(errors.amount_paid,true)} placeholder="0.00" step="0.01" max={remaining} />
           </div>
-          {errors.amount_paid && (
-            <p className="text-red-500 text-xs mt-1">{errors.amount_paid}</p>
-          )}
-          <p className="text-xs text-gray-500 mt-1">
-            Max: {formatCurrency(remainingAmount)}
-          </p>
-        </div>
+          <p className="text-xs text-slate-400 mt-1">Max payable: {fmt(remaining)}</p>
+        </F>
 
-        {/* Payment Method */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Payment Method
-          </label>
-          <select
-            name="payment_method"
-            value={formData.payment_method}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-          >
-            {paymentMethods.map(method => (
-              <option key={method} value={method}>
-                {method}
-              </option>
-            ))}
+        <F label="Payment Method">
+          <select name="payment_method" value={form.payment_method} onChange={set} className={sel}>
+            {METHODS.map(m => <option key={m}>{m}</option>)}
           </select>
-        </div>
+        </F>
 
-        {/* Reference Number */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Reference Number
-          </label>
-          <input
-            type="text"
-            name="reference_number"
-            value={formData.reference_number}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-            placeholder="e.g., Cheque #, Transaction ID"
-          />
-        </div>
+        <F label="Reference Number">
+          <input name="reference_number" value={form.reference_number} onChange={set} className={inp()} placeholder="Cheque #, Transaction ID" />
+        </F>
 
-        {/* Notes */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Notes
-          </label>
-          <textarea
-            name="notes"
-            value={formData.notes}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-            placeholder="Additional payment notes"
-            rows="2"
-          />
-        </div>
+        <F label="Notes">
+          <textarea name="notes" value={form.notes} onChange={set} rows={2} className={ta} placeholder="Additional payment notes" />
+        </F>
       </div>
 
-      {/* Form Actions */}
-      <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isLoading ? 'Recording...' : 'Record Payment'}
+      <div className="flex justify-end gap-3 pt-2">
+        <button type="button" onClick={onCancel} className="px-5 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all">Cancel</button>
+        <button type="submit" disabled={isLoading} className="px-5 py-2.5 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-sm transition-all disabled:opacity-50 flex items-center gap-2">
+          {isLoading && <Loader className="w-4 h-4 animate-spin" />}
+          {isLoading ? 'Recording…' : 'Record Payment'}
         </button>
       </div>
     </form>
