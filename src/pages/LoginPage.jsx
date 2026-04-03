@@ -31,7 +31,7 @@ export default function LoginPage() {
 
   const fillDemo = (role) => {
     const creds = {
-      admin:  { email: 'admin1@clinicore.com', password: 'AdminPass123' },
+      admin:  { email: 'admin1@clinicore.com', password: 'SecurePass123' },
       doctor: { email: 'doctor@clinicore.com', password: 'SecurePass123' },
     };
     const c = creds[role];
