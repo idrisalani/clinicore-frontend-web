@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Menu, X, Home, Users, Calendar, FileText, Beaker, Pill,
-  CreditCard, LogOut, ChevronDown, Shield, Settings,
+  CreditCard, LogOut, ChevronDown, Shield, Settings, AlertTriangle,
   UserCog, ClipboardList, HeartPulse, FlaskConical,
   Stethoscope, Receipt, BarChart3, User,
 } from 'lucide-react';
@@ -23,10 +23,13 @@ const NAV_CONFIG = {
       { icon: Shield,        label: 'Permissions',   path: '/admin/permissions' },
       { icon: Users,         label: 'Patients',      path: '/patients'          },
       { icon: Calendar,      label: 'Appointments',  path: '/appointments'      },
+      { icon: Users,         label: 'Queue',         path: '/queue'             },
       { icon: FileText,      label: 'Consultations', path: '/consultations'     },
       { icon: Beaker,        label: 'Laboratory',    path: '/lab'               },
       { icon: Pill,          label: 'Pharmacy',      path: '/pharmacy'          },
+      { icon: AlertTriangle, label: 'Drug Expiry',   path: '/drug-expiry'       },
       { icon: CreditCard,    label: 'Billing',       path: '/billing'           },
+      { icon: BarChart3,     label: 'Fin. Reports',  path: '/reports'           },
       { icon: ClipboardList, label: 'Activity Logs', path: '/admin/activity'   },
       { icon: Settings,      label: 'Settings',      path: '/admin/settings'   },
     ],
@@ -41,10 +44,12 @@ const NAV_CONFIG = {
       { icon: Home,          label: 'Dashboard',     path: '/dashboard'     },
       { icon: Users,         label: 'My Patients',   path: '/patients'      },
       { icon: Calendar,      label: 'Appointments',  path: '/appointments'  },
+      { icon: Users,         label: 'Queue',         path: '/queue'         },
       { icon: Stethoscope,   label: 'Consultations', path: '/consultations' },
       { icon: FlaskConical,  label: 'Lab Requests',  path: '/lab'           },
       { icon: Pill,          label: 'Prescriptions', path: '/pharmacy'      },
       { icon: Receipt,       label: 'Billing',       path: '/billing'       },
+      { icon: BarChart3,     label: 'Fin. Reports',  path: '/reports'       },
     ],
   },
   nurse: {
@@ -57,6 +62,7 @@ const NAV_CONFIG = {
       { icon: Home,          label: 'Dashboard',    path: '/dashboard'     },
       { icon: Users,         label: 'Patients',     path: '/patients'      },
       { icon: Calendar,      label: 'Appointments', path: '/appointments'  },
+      { icon: Users,         label: 'Queue',        path: '/queue'         },
       { icon: HeartPulse,    label: 'Vitals',       path: '/consultations' },
       { icon: FlaskConical,  label: 'Lab Results',  path: '/lab'           },
       { icon: Pill,          label: 'Medications',  path: '/pharmacy'      },
@@ -69,9 +75,10 @@ const NAV_CONFIG = {
     badge: 'PHARMACIST',
     badgeColor: 'bg-emerald-500',
     items: [
-      { icon: Home,          label: 'Dashboard',      path: '/dashboard' },
-      { icon: Pill,          label: 'Prescriptions',  path: '/pharmacy'  },
-      { icon: ClipboardList, label: 'Drug Inventory', path: '/pharmacy'  },
+      { icon: Home,          label: 'Dashboard',      path: '/dashboard'  },
+      { icon: Pill,          label: 'Prescriptions',  path: '/pharmacy'   },
+      { icon: ClipboardList, label: 'Drug Inventory', path: '/pharmacy'   },
+      { icon: AlertTriangle, label: 'Drug Expiry',    path: '/drug-expiry' },
       { icon: Users,         label: 'Patients',       path: '/patients'  },
       { icon: Receipt,       label: 'Billing',        path: '/billing'   },
     ],
@@ -99,6 +106,7 @@ const NAV_CONFIG = {
       { icon: Home,     label: 'Dashboard',    path: '/dashboard'    },
       { icon: Users,    label: 'Patients',     path: '/patients'     },
       { icon: Calendar, label: 'Appointments', path: '/appointments' },
+      { icon: Users,    label: 'Queue',        path: '/queue'        },
       { icon: Receipt,  label: 'Billing',      path: '/billing'      },
     ],
   },
@@ -269,7 +277,7 @@ const Sidebar = ({ userRole, userName }) => {
           <div className="h-px bg-white/10" />
         </div>
 
-        {/* Logout Button — triggers modal */}
+        {/* Logout Button */}
         <div className="px-3 py-4 flex-shrink-0">
           <button
             onClick={() => setShowLogout(true)}

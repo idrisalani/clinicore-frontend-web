@@ -16,6 +16,9 @@ import ConsultationsPage from './pages/ConsultationsPage';
 import LabPage from './pages/LabPage';
 import PharmacyPage from './pages/PharmacyPage';
 import BillingPage from './pages/BillingPage';
+import QueuePage from './pages/QueuePage';
+import FinancialReportsPage from './pages/FinancialReportsPage';
+import DrugExpiryPage from './pages/DrugExpiryPage';
 
 // Admin pages
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -105,6 +108,10 @@ function App() {
         <Route path="/lab"           element={<Protected><LabPage /></Protected>} />
         <Route path="/pharmacy"      element={<Protected><PharmacyPage /></Protected>} />
         <Route path="/billing"       element={<Protected><BillingPage /></Protected>} />
+        <Route path="/queue"         element={<Protected><QueuePage /></Protected>} />
+        <Route path="/reports"       element={<Protected><FinancialReportsPage /></Protected>} />
+        <Route path="/drug-expiry"   element={<Protected><DrugExpiryPage /></Protected>} />
+
 
         {/* ADMIN ROUTES — admin role only, graceful 403 for others */}
         <Route path="/admin"             element={<AdminOnly><AdminDashboard /></AdminOnly>} />

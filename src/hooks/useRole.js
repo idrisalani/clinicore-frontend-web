@@ -24,6 +24,7 @@ const PERMISSIONS = {
     lab:           { canView: true,  canCreate: true,  canEdit: true,  canDelete: true,  canAddResult: true  },
     pharmacy:      { canView: true,  canCreate: true,  canEdit: true,  canDelete: true,  canPrescribe: true, canDispense: true },
     billing:       { canView: true,  canCreate: true,  canEdit: true,  canDelete: true,  canRecordPayment: true },
+    queue:         { canView: true,  canCreate: true,  canEdit: true,  canDelete: true  },
   },
   doctor: {
     patients:      { canView: true,  canCreate: true,  canEdit: true,  canDelete: false },
@@ -32,6 +33,7 @@ const PERMISSIONS = {
     lab:           { canView: true,  canCreate: true,  canEdit: false, canDelete: false, canAddResult: false },
     pharmacy:      { canView: true,  canCreate: true,  canEdit: true,  canDelete: false, canPrescribe: true, canDispense: false },
     billing:       { canView: true,  canCreate: false, canEdit: false, canDelete: false, canRecordPayment: false },
+    queue:         { canView: true,  canCreate: false, canEdit: true,  canDelete: false },  // can call/update but not check-in
   },
   nurse: {
     patients:      { canView: true,  canCreate: false, canEdit: true,  canDelete: false },
@@ -40,6 +42,7 @@ const PERMISSIONS = {
     lab:           { canView: true,  canCreate: false, canEdit: false, canDelete: false, canAddResult: true  },
     pharmacy:      { canView: true,  canCreate: false, canEdit: false, canDelete: false, canPrescribe: false, canDispense: false },
     billing:       { canView: true,  canCreate: false, canEdit: false, canDelete: false, canRecordPayment: false },
+    queue:         { canView: true,  canCreate: true,  canEdit: true,  canDelete: false }, // can check-in & update status
   },
   pharmacist: {
     patients:      { canView: true,  canCreate: false, canEdit: false, canDelete: false },
@@ -48,6 +51,7 @@ const PERMISSIONS = {
     lab:           { canView: true,  canCreate: false, canEdit: false, canDelete: false, canAddResult: false },
     pharmacy:      { canView: true,  canCreate: true,  canEdit: true,  canDelete: true,  canPrescribe: false, canDispense: true },
     billing:       { canView: true,  canCreate: false, canEdit: false, canDelete: false, canRecordPayment: true },
+    queue:         { canView: true,  canCreate: false, canEdit: false, canDelete: false }, // view only
   },
   lab_technician: {
     patients:      { canView: true,  canCreate: false, canEdit: false, canDelete: false },
@@ -56,6 +60,7 @@ const PERMISSIONS = {
     lab:           { canView: true,  canCreate: true,  canEdit: true,  canDelete: true,  canAddResult: true  },
     pharmacy:      { canView: false, canCreate: false, canEdit: false, canDelete: false, isBlocked: true },
     billing:       { canView: false, canCreate: false, canEdit: false, canDelete: false, isBlocked: true },
+    queue:         { canView: true,  canCreate: false, canEdit: false, canDelete: false }, // view only
   },
   receptionist: {
     patients:      { canView: true,  canCreate: true,  canEdit: false, canDelete: false },
@@ -64,6 +69,7 @@ const PERMISSIONS = {
     lab:           { canView: false, canCreate: false, canEdit: false, canDelete: false, isBlocked: true },
     pharmacy:      { canView: false, canCreate: false, canEdit: false, canDelete: false, isBlocked: true },
     billing:       { canView: true,  canCreate: true,  canEdit: false, canDelete: false, canRecordPayment: true },
+    queue:         { canView: true,  canCreate: true,  canEdit: true,  canDelete: true  }, // full queue — receptionist owns this
   },
   patient: {
     patients:      { canView: true,  canCreate: false, canEdit: false, canDelete: false, ownOnly: true },
@@ -72,6 +78,7 @@ const PERMISSIONS = {
     lab:           { canView: true,  canCreate: false, canEdit: false, canDelete: false, ownOnly: true, canAddResult: false },
     pharmacy:      { canView: true,  canCreate: false, canEdit: false, canDelete: false, ownOnly: true, canPrescribe: false },
     billing:       { canView: true,  canCreate: false, canEdit: false, canDelete: false, ownOnly: true, canRecordPayment: true },
+    queue:         { canView: false, canCreate: false, canEdit: false, canDelete: false, isBlocked: true }, // patients don't see queue
   },
 };
 
@@ -124,6 +131,7 @@ export const useRole = () => {
       lab:           getModulePerms('lab'),
       pharmacy:      getModulePerms('pharmacy'),
       billing:       getModulePerms('billing'),
+      queue:         getModulePerms('queue'),
     },
   };
 };
