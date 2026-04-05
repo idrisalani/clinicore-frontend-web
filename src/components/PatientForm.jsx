@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, MapPin, Heart, Shield, AlertCircle, Loader, Copy, Check, X } from 'lucide-react';
-import patientsService from '../services/patientsService';
+import * as patientsService from '../services/patientService';
 
 // ── Reusable field wrappers ────────────────────────────────────────────────────
 const F = ({ label, error, children, span2 = false }) => (

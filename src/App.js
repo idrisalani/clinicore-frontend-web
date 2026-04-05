@@ -19,6 +19,7 @@ import BillingPage from './pages/BillingPage';
 import QueuePage from './pages/QueuePage';
 import FinancialReportsPage from './pages/FinancialReportsPage';
 import DrugExpiryPage from './pages/DrugExpiryPage';
+import MaternityPage from './pages/MaternityPage';
 
 // Admin pages
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -71,14 +72,12 @@ const AppLayout = ({ children }) => {
 
 // ── Route helpers ─────────────────────────────────────────────────────────────
 
-/** Standard protected route */
 const Protected = ({ children }) => (
   <PrivateRoute>
     <AppLayout>{children}</AppLayout>
   </PrivateRoute>
 );
 
-/** Admin-only protected route — shows AccessDenied for non-admins */
 const AdminOnly = ({ children }) => (
   <PrivateRoute>
     <AppLayout>
@@ -97,9 +96,10 @@ function App() {
       <Routes>
 
         {/* PUBLIC */}
-        <Route path="/"         element={<LandingPage />} />
-        <Route path="/login"    element={<LoginPage />} />
-        {/* CORE MODULES — any authenticated user */}
+        <Route path="/"      element={<LandingPage />} />
+        <Route path="/login" element={<LoginPage />} />
+
+        {/* CORE MODULES */}
         <Route path="/dashboard"     element={<Protected><DashboardPage /></Protected>} />
         <Route path="/patients"      element={<Protected><PatientsPage /></Protected>} />
         <Route path="/patients/:id"  element={<Protected><PatientDetailPage /></Protected>} />
@@ -111,9 +111,9 @@ function App() {
         <Route path="/queue"         element={<Protected><QueuePage /></Protected>} />
         <Route path="/reports"       element={<Protected><FinancialReportsPage /></Protected>} />
         <Route path="/drug-expiry"   element={<Protected><DrugExpiryPage /></Protected>} />
+        <Route path="/maternity"     element={<Protected><MaternityPage /></Protected>} />
 
-
-        {/* ADMIN ROUTES — admin role only, graceful 403 for others */}
+        {/* ADMIN ROUTES */}
         <Route path="/admin"             element={<AdminOnly><AdminDashboard /></AdminOnly>} />
         <Route path="/admin/users"       element={<AdminOnly><UsersPage /></AdminOnly>} />
         <Route path="/admin/roles"       element={<AdminOnly><RolesPage /></AdminOnly>} />
