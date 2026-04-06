@@ -7,11 +7,11 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useAdmin } from '../../hooks/useAdmin';
 import {
   Trash2, Edit2, Plus, Users, X, Shield,
-  AlertTriangle, Check, Loader, RefreshCw
+  AlertTriangle, Check, Loader, RefreshCw,
 } from 'lucide-react';
 import RoleForm from '../../components/admin/RoleForm';
 
-// ── Level Badge ───────────────────────────────────────────────────────────────
+// \u2500\u2500 Level Badge \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 const LevelBadge = ({ level }) => {
   const colors = [
     '', 'bg-red-100 text-red-700', 'bg-orange-100 text-orange-700',
@@ -26,7 +26,7 @@ const LevelBadge = ({ level }) => {
   );
 };
 
-// ── Toast ─────────────────────────────────────────────────────────────────────
+// \u2500\u2500 Toast \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 const Toast = ({ toast }) => {
   if (!toast) return null;
   return (
@@ -39,7 +39,7 @@ const Toast = ({ toast }) => {
   );
 };
 
-// ── Delete Modal ──────────────────────────────────────────────────────────────
+// \u2500\u2500 Delete Modal \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 const DeleteModal = ({ role, onConfirm, onCancel, loading }) => {
   if (!role) return null;
   return (
@@ -73,7 +73,7 @@ const DeleteModal = ({ role, onConfirm, onCancel, loading }) => {
   );
 };
 
-// ── Users Panel ───────────────────────────────────────────────────────────────
+// \u2500\u2500 Users Panel \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 const UsersPanel = ({ role, users, onClose }) => (
   <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
     <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50">
@@ -126,7 +126,7 @@ const UsersPanel = ({ role, users, onClose }) => (
   </div>
 );
 
-// ── Role Card ─────────────────────────────────────────────────────────────────
+// \u2500\u2500 Role Card \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 const RoleCard = ({ role, onEdit, onDelete, onViewUsers }) => {
   const accentColors = [
     '', 'from-red-500 to-rose-600', 'from-orange-500 to-amber-600',
@@ -170,7 +170,7 @@ const RoleCard = ({ role, onEdit, onDelete, onViewUsers }) => {
   );
 };
 
-// ── Main Component ────────────────────────────────────────────────────────────
+// \u2500\u2500 Main Component \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 export default function RolesPage() {
   const [showForm, setShowForm]         = useState(false);
   const [editingRole, setEditingRole]   = useState(null);
@@ -244,7 +244,7 @@ export default function RolesPage() {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="p-6 space-y-5">
       <Toast toast={toast} />
       <DeleteModal
         role={deleteTarget}

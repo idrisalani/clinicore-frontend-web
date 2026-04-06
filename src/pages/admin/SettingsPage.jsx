@@ -11,7 +11,7 @@ import {
   ToggleLeft, Hash, Type,
 } from 'lucide-react';
 
-// ── Toast ─────────────────────────────────────────────────────────────────────
+// \u2500\u2500 Toast \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 const Toast = ({ toast }) => {
   if (!toast) return null;
   return (
@@ -24,7 +24,7 @@ const Toast = ({ toast }) => {
   );
 };
 
-// ── Delete Modal ──────────────────────────────────────────────────────────────
+// \u2500\u2500 Delete Modal \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 const DeleteModal = ({ settingKey, onConfirm, onCancel, loading }) => {
   if (!settingKey) return null;
   return (
@@ -58,14 +58,14 @@ const DeleteModal = ({ settingKey, onConfirm, onCancel, loading }) => {
   );
 };
 
-// ── Type Icon ─────────────────────────────────────────────────────────────────
+// \u2500\u2500 Type Icon \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 const TypeIcon = ({ type }) => {
   if (type === 'number')  return <Hash className="w-3.5 h-3.5 text-blue-500" />;
   if (type === 'boolean') return <ToggleLeft className="w-3.5 h-3.5 text-purple-500" />;
   return <Type className="w-3.5 h-3.5 text-gray-400" />;
 };
 
-// ── Setting Row ───────────────────────────────────────────────────────────────
+// \u2500\u2500 Setting Row \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 const SettingRow = ({ setting, onEdit, onDelete }) => (
   <div className="flex items-center justify-between p-4 hover:bg-gray-50/50 transition-colors group">
     <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -97,7 +97,7 @@ const SettingRow = ({ setting, onEdit, onDelete }) => (
   </div>
 );
 
-// ── Main Component ────────────────────────────────────────────────────────────
+// \u2500\u2500 Main Component \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 export default function SettingsPage() {
   const [newSetting, setNewSetting]       = useState({ key: '', value: '', type: 'string' });
   const [editTarget, setEditTarget]       = useState(null);
@@ -180,7 +180,7 @@ export default function SettingsPage() {
   const inputCls = "w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50 transition-all";
 
   return (
-    <div className="space-y-5">
+    <div className="p-6 space-y-5">
       <Toast toast={toast} />
       <DeleteModal
         settingKey={deleteTarget}

@@ -91,14 +91,14 @@ const DeleteModal = ({ user, onConfirm, onCancel, loading }) => {
 
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function UsersPage() {
-  const [showForm, setShowForm]         = useState(false);
-  const [editUser, setEditUser]         = useState(null);
-  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [showForm, setShowForm]           = useState(false);
+  const [editUser, setEditUser]           = useState(null);
+  const [deleteTarget, setDeleteTarget]   = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
-  const [search, setSearch]             = useState('');
-  const [roleFilter, setRoleFilter]     = useState('all');
-  const [toast, setToast]               = useState(null);
-  const [error, setError]               = useState('');
+  const [search, setSearch]               = useState('');
+  const [roleFilter, setRoleFilter]       = useState('all');
+  const [toast, setToast]                 = useState(null);
+  const [error, setError]                 = useState('');
 
   const { users, loading, fetchUsers, createUser, updateUser, deleteUser } = useAdmin();
 
@@ -167,7 +167,7 @@ export default function UsersPage() {
   const roles = ['all', 'admin', 'doctor', 'nurse', 'pharmacist', 'lab_technician', 'receptionist', 'patient'];
 
   return (
-    <div className="space-y-5">
+    <div className="p-6 space-y-5">
       <Toast toast={toast} />
 
       <DeleteModal
@@ -209,7 +209,7 @@ export default function UsersPage() {
         </div>
       )}
 
-      {/* ── User Form (slide in) ── */}
+      {/* ── User Form ── */}
       {showForm && (
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-50">
@@ -231,7 +231,6 @@ export default function UsersPage() {
 
       {/* ── Filters ── */}
       <div className="flex flex-col sm:flex-row gap-3">
-        {/* Search */}
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
@@ -248,7 +247,6 @@ export default function UsersPage() {
             </button>
           )}
         </div>
-        {/* Role filter */}
         <div className="relative">
           <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <select

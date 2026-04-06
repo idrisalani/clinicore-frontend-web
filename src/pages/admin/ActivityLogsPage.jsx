@@ -12,7 +12,7 @@ import {
 
 const PAGE_SIZE = 50;
 
-// ── Action Badge ──────────────────────────────────────────────────────────────
+// \u2500\u2500 Action Badge \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 const ActionBadge = ({ action }) => {
   const map = {
     CREATE: 'bg-green-100 text-green-700 border-green-200',
@@ -26,12 +26,12 @@ const ActionBadge = ({ action }) => {
   const cls = map[key] || map.VIEW;
   return (
     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${cls}`}>
-      {action || '—'}
+      {action || '\u2014'}
     </span>
   );
 };
 
-// ── Toast ─────────────────────────────────────────────────────────────────────
+// \u2500\u2500 Toast \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 const Toast = ({ toast }) => {
   if (!toast) return null;
   return (
@@ -44,7 +44,7 @@ const Toast = ({ toast }) => {
   );
 };
 
-// ── Log Detail Modal ──────────────────────────────────────────────────────────
+// \u2500\u2500 Log Detail Modal \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 const LogDetailModal = ({ log, onClose }) => {
   if (!log) return null;
   const fields = [
@@ -52,9 +52,9 @@ const LogDetailModal = ({ log, onClose }) => {
     { label: 'User',        value: log.username || 'System' },
     { label: 'Action',      value: log.action },
     { label: 'Resource',    value: log.resource_type },
-    { label: 'Resource ID', value: log.resource_id || '—' },
-    { label: 'IP Address',  value: log.ip_address || '—' },
-    { label: 'Timestamp',   value: log.created_at ? new Date(log.created_at).toLocaleString() : '—' },
+    { label: 'Resource ID', value: log.resource_id || '\u2014' },
+    { label: 'IP Address',  value: log.ip_address || '\u2014' },
+    { label: 'Timestamp',   value: log.created_at ? new Date(log.created_at).toLocaleString() : '\u2014' },
   ];
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -78,7 +78,7 @@ const LogDetailModal = ({ log, onClose }) => {
             {fields.map(f => (
               <div key={f.label} className="bg-gray-50 rounded-xl p-3">
                 <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1">{f.label}</p>
-                <p className="text-sm font-semibold text-gray-800 break-all">{f.value ?? '—'}</p>
+                <p className="text-sm font-semibold text-gray-800 break-all">{f.value ?? '\u2014'}</p>
               </div>
             ))}
           </div>
@@ -102,7 +102,7 @@ const LogDetailModal = ({ log, onClose }) => {
   );
 };
 
-// ── Clear Logs Modal ──────────────────────────────────────────────────────────
+// \u2500\u2500 Clear Logs Modal \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 const ClearLogsModal = ({ onConfirm, onCancel, loading }) => {
   const [days, setDays] = useState(90);
   return (
@@ -120,7 +120,7 @@ const ClearLogsModal = ({ onConfirm, onCancel, loading }) => {
           </p>
           <div className="mb-5 text-left">
             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
-              Days old (1–365)
+              Days old (1\u2013365)
             </label>
             <input
               type="number" value={days} min={1} max={365}
@@ -145,7 +145,7 @@ const ClearLogsModal = ({ onConfirm, onCancel, loading }) => {
   );
 };
 
-// ── Main Component ────────────────────────────────────────────────────────────
+// \u2500\u2500 Main Component \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 export default function ActivityLogsPage() {
   const [page, setPage]               = useState(0);
   const [selectedLog, setSelectedLog] = useState(null);
@@ -214,7 +214,7 @@ export default function ActivityLogsPage() {
   const actions = ['all', 'CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'VIEW'];
 
   return (
-    <div className="space-y-5">
+    <div className="p-6 space-y-5">
       <Toast toast={toast} />
       {selectedLog && <LogDetailModal log={selectedLog} onClose={() => setSelectedLog(null)} />}
       {showClear && (
@@ -230,7 +230,7 @@ export default function ActivityLogsPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Activity Logs</h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            {filtered.length} entries · Page {page + 1}
+            {filtered.length} entries \u00b7 Page {page + 1}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -326,8 +326,8 @@ export default function ActivityLogsPage() {
                       </div>
                     </td>
                     <td className="px-5 py-3.5"><ActionBadge action={log.action} /></td>
-                    <td className="px-5 py-3.5 text-sm text-gray-600">{log.resource_type || '—'}</td>
-                    <td className="px-5 py-3.5 text-xs font-mono text-gray-500">{log.ip_address || '—'}</td>
+                    <td className="px-5 py-3.5 text-sm text-gray-600">{log.resource_type || '\u2014'}</td>
+                    <td className="px-5 py-3.5 text-xs font-mono text-gray-500">{log.ip_address || '\u2014'}</td>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-1.5 text-xs text-gray-500">
                         <Clock className="w-3 h-3 flex-shrink-0" />
@@ -336,7 +336,7 @@ export default function ActivityLogsPage() {
                               day: 'numeric', month: 'short',
                               hour: '2-digit', minute: '2-digit'
                             })
-                          : '—'}
+                          : '\u2014'}
                       </div>
                     </td>
                     <td className="px-5 py-3.5 text-right">
@@ -354,7 +354,7 @@ export default function ActivityLogsPage() {
             {/* Pagination */}
             <div className="px-5 py-3.5 border-t border-gray-50 bg-gray-50/50 flex items-center justify-between">
               <p className="text-xs text-gray-400">
-                Page {page + 1} · {filtered.length} entries shown
+                Page {page + 1} \u00b7 {filtered.length} entries shown
               </p>
               <div className="flex items-center gap-2">
                 <button onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0}
