@@ -43,7 +43,7 @@ const ConsultationNotes = ({ consultation = null, isLoading = false, onEdit, onD
     setPdfError('');
     setPdfLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('clinicore_access_token');
       const baseUrl = import.meta.env.VITE_API_URL || 'https://clinicore-backend-71qa.onrender.com';
       const response = await fetch(
         `${baseUrl}/api/v1/pdf/consultation/${consultation.consultation_id}`,
