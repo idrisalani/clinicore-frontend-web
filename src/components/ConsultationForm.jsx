@@ -176,7 +176,17 @@ const ConsultationForm = ({
     return Object.keys(errs).length === 0;
   };
 
-  const submit = (e) => { e.preventDefault(); if (validate() && onSubmit) onSubmit(form); };
+  const submit = (e) => {
+    e.preventDefault();
+    if (validate() && onSubmit) {
+      // Always ensure consultation_date is set — backend requires it
+      const payload = {
+        ...form,
+        consultation_date: form.consultation_date || new Date().toISOString().split('T')[0],
+      };
+      onSubmit(payload);
+    }
+  };
 
   return (
     <form onSubmit={submit} className="space-y-4">
