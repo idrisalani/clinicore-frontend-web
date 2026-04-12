@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Edit2, Trash2, Download, ChevronDown, ChevronUp, AlertTriangle, Activity, Stethoscope, CalendarCheck, MessageSquare, Search } from 'lucide-react';
+import { Edit2, Trash2, Download, ChevronDown, ChevronUp, AlertTriangle, Activity, Stethoscope, CalendarCheck, MessageSquare, Search, Loader } from 'lucide-react';
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-NG', { day:'numeric', month:'long', year:'numeric' }) : '—';
 
@@ -34,6 +34,44 @@ const ConsultationNotes = ({ consultation = null, isLoading = false, onEdit, onD
   const [expanded, setExpanded] = useState({ complaint:true, history:true, vitals:true, exam:false, diagnosis:true, followup:true });
   const toggle = (id) => setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
 
+  // ── PDF download state ───────────────────────────────────────────────────────
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfError,   setPdfError]   = useState('');
+
+  const handleDownloadPDF = async () => {
+    if (pdfLoading) return;
+    setPdfError('');
+    setPdfLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const baseUrl = import.meta.env.VITE_API_URL || 'https://clinicore-backend-71qa.onrender.com';
+      const response = await fetch(
+        `${baseUrl}/api/v1/pdf/consultation/${consultation.consultation_id}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || `Server error ${response.status}`);
+      }
+      const blob = await response.blob();
+      const url  = window.URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = `Consultation-${consultation.consultation_id}-${consultation.last_name || 'Record'}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('PDF download failed:', err);
+      setPdfError(err.message || 'Failed to generate PDF');
+      setTimeout(() => setPdfError(''), 5000);
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+  // ────────────────────────────────────────────────────────────────────────────
+
   if (isLoading) return <div className="flex items-center justify-center h-64"><div className="w-10 h-10 border-teal-500 border-t-transparent rounded-full animate-spin" style={{borderWidth:3,borderStyle:'solid'}} /></div>;
   if (!consultation) return <div className="text-center py-12 text-slate-400">No consultation data available</div>;
 
@@ -62,18 +100,32 @@ const ConsultationNotes = ({ consultation = null, isLoading = false, onEdit, onD
 
       {/* Actions */}
       {canEdit && (
-        <div className="flex gap-2 justify-end">
-          {onEdit && <button onClick={() => onEdit(consultation.consultation_id)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 text-white text-sm font-semibold rounded-xl hover:bg-teal-700 transition-all shadow-sm">
-            <Edit2 className="w-4 h-4" /> Edit
-          </button>}
-          {onDelete && <button onClick={() => onDelete(consultation.consultation_id)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-red-500 text-white text-sm font-semibold rounded-xl hover:bg-red-600 transition-all shadow-sm">
-            <Trash2 className="w-4 h-4" /> Delete
-          </button>}
-          <button className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 text-sm font-semibold rounded-xl hover:bg-slate-50 transition-all">
-            <Download className="w-4 h-4" /> PDF
-          </button>
+        <div className="flex flex-col items-end gap-1">
+          <div className="flex gap-2">
+            {onEdit && (
+              <button onClick={() => onEdit(consultation.consultation_id)}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 text-white text-sm font-semibold rounded-xl hover:bg-teal-700 transition-all shadow-sm">
+                <Edit2 className="w-4 h-4" /> Edit
+              </button>
+            )}
+            {onDelete && (
+              <button onClick={() => onDelete(consultation.consultation_id)}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-red-500 text-white text-sm font-semibold rounded-xl hover:bg-red-600 transition-all shadow-sm">
+                <Trash2 className="w-4 h-4" /> Delete
+              </button>
+            )}
+            <button
+              onClick={handleDownloadPDF}
+              disabled={pdfLoading}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 text-sm font-semibold rounded-xl hover:bg-slate-50 hover:border-teal-300 hover:text-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              {pdfLoading ? <Loader className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              {pdfLoading ? 'Generating…' : 'PDF'}
+            </button>
+          </div>
+          {pdfError && (
+            <p className="text-xs text-red-500">{pdfError}</p>
+          )}
         </div>
       )}
 
