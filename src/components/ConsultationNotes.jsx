@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Edit2, Trash2, Download, ChevronDown, ChevronUp, AlertTriangle, Activity, Stethoscope, CalendarCheck, MessageSquare, Search, Loader } from 'lucide-react';
+import api from '../services/api.js';
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-NG', { day:'numeric', month:'long', year:'numeric' }) : '—';
 
@@ -43,17 +44,13 @@ const ConsultationNotes = ({ consultation = null, isLoading = false, onEdit, onD
     setPdfError('');
     setPdfLoading(true);
     try {
-      const token = localStorage.getItem('clinicore_access_token');
-      const baseUrl = import.meta.env.VITE_API_URL || 'https://clinicore-backend-71qa.onrender.com';
-      const response = await fetch(
-        `${baseUrl}/api/v1/pdf/consultation/${consultation.consultation_id}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+      // Use the api axios instance — it automatically injects the Authorization header
+      // via its request interceptor (reads clinicore_access_token from localStorage)
+      const response = await api.get(
+        `/pdf/consultation/${consultation.consultation_id}`,
+        { responseType: 'blob' }   // tell axios to return raw binary
       );
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err.error || `Server error ${response.status}`);
-      }
-      const blob = await response.blob();
+      const blob = new Blob([response.data], { type: 'application/pdf' });
       const url  = window.URL.createObjectURL(blob);
       const a    = document.createElement('a');
       a.href     = url;
@@ -64,7 +61,8 @@ const ConsultationNotes = ({ consultation = null, isLoading = false, onEdit, onD
       window.URL.revokeObjectURL(url);
     } catch (err) {
       console.error('PDF download failed:', err);
-      setPdfError(err.message || 'Failed to generate PDF');
+      const msg = err.response?.data?.error || err.message || 'Failed to generate PDF';
+      setPdfError(msg);
       setTimeout(() => setPdfError(''), 5000);
     } finally {
       setPdfLoading(false);
