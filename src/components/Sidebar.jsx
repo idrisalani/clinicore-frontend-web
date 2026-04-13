@@ -4,7 +4,7 @@ import {
   Menu, X, Home, Users, Calendar, FileText, Beaker, Pill,
   CreditCard, LogOut, ChevronDown, Shield, Settings, AlertTriangle,
   UserCog, ClipboardList, HeartPulse, FlaskConical,
-  Stethoscope, Receipt, BarChart3, User, Heart, Activity,
+  Stethoscope, Receipt, BarChart3, User, Heart, Activity, Video
 } from 'lucide-react';
 import LogoutModal from './LogoutModal';
 
@@ -31,6 +31,7 @@ const NAV_CONFIG = {
       { icon: AlertTriangle, label: 'Drug Expiry',   path: '/drug-expiry'       },
       { icon: CreditCard,    label: 'Billing',       path: '/billing'           },
       { icon: BarChart3,     label: 'Fin. Reports',  path: '/reports'           },
+      { icon: Video,         label: 'Telemedicine',  path: '/telemedicine'      },
       { icon: ClipboardList, label: 'Activity Logs', path: '/admin/activity'    },
       { icon: Settings,      label: 'Settings',      path: '/admin/settings'    },
     ],
@@ -52,6 +53,7 @@ const NAV_CONFIG = {
       { icon: Pill,          label: 'Prescriptions', path: '/pharmacy'      },
       { icon: Receipt,       label: 'Billing',       path: '/billing'       },
       { icon: BarChart3,     label: 'Fin. Reports',  path: '/reports'       },
+      { icon: Video,         label: 'Telemedicine',  path: '/telemedicine'  },  
     ],
   },
   nurse: {

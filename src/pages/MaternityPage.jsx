@@ -722,11 +722,11 @@ const MaternityPage = () => {
 
       {/* Stats */}
       <div className="grid grid-cols-5 gap-4">
-        <StatCard label="Active cases"  value={stats.active}       icon={Heart}     color="pink" />
-        <StatCard label="Due soon"      value={stats.due_soon}     icon={Calendar}  color="amber" sub="next 30 days" />
-        <StatCard label="High risk"     value={stats.high_risk}    icon={AlertTriangle} color="red" />
-        <StatCard label="Delivered"     value={stats.delivered}    icon={Baby}      color="blue" />
-        <StatCard label="Live births"   value={stats.live_births}  icon={Activity}  color="teal" />
+        <StatCard label="Active cases"  value={stats.active}       icon={Heart}          color="pink" />
+        <StatCard label="Due soon"      value={stats.due_soon}     icon={Calendar}       color="amber" sub="next 30 days" />
+        <StatCard label="High risk"     value={stats.high_risk}    icon={AlertTriangle}  color="red" />
+        <StatCard label="Delivered"     value={stats.delivered}    icon={Baby}           color="blue" />
+        <StatCard label="Live births"   value={stats.live_births}  icon={Activity}       color="teal" />
       </div>
 
       {/* Filters */}
@@ -790,9 +790,6 @@ const MaternityPage = () => {
                     </td>
                     <td className="px-5 py-4">
                       <span className="font-medium text-teal-700">{c.anc_count}</span>
-                      {c.visit_count !== undefined && c.visit_count !== c.anc_count && (
-                        <span className="text-xs text-slate-400 ml-1">({c.visit_count} recorded)</span>
-                      )}
                     </td>
                     <td className="px-5 py-4">
                       <Badge text={c.risk_level} colorClass={RISK_COLORS[c.risk_level] || 'bg-slate-100 text-slate-600'} />
