@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, ArrowRight, Shield, Activity, Users } from 'lucide-react';
 import { authService } from '../services/authService';
@@ -15,6 +15,18 @@ export default function LoginPage() {
   const [error, setError]       = useState('');
   const navigate = useNavigate();
 
+  // ── Auto-fill from landing page demo cards ────────────────────────────────
+  useEffect(() => {
+    const demoEmail    = sessionStorage.getItem('demo_email');
+    const demoPassword = sessionStorage.getItem('demo_password');
+    if (demoEmail && demoPassword) {
+      setEmail(demoEmail);
+      setPassword(demoPassword);
+      sessionStorage.removeItem('demo_email');
+      sessionStorage.removeItem('demo_password');
+    }
+  }, []);
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -29,10 +41,12 @@ export default function LoginPage() {
     }
   };
 
+  // ── Demo quick-fill ───────────────────────────────────────────────────────
   const fillDemo = (role) => {
     const creds = {
-      admin:  { email: 'admin1@clinicore.com', password: 'SecurePass123' },
-      doctor: { email: 'doctor@clinicore.com', password: 'SecurePass123' },
+      admin:   { email: 'admin1@clinicore.com',  password: 'SecurePass123' },
+      doctor:  { email: 'doctor@clinicore.com',   password: 'SecurePass123' },
+      patient: { email: 'patient1@email.com',     password: 'SecurePass123' },
     };
     const c = creds[role];
     setEmail(c.email);
@@ -43,7 +57,7 @@ export default function LoginPage() {
   const features = [
     { icon: <Users className="w-4 h-4" />,    text: '7 Role-based access levels' },
     { icon: <Shield className="w-4 h-4" />,   text: 'HIPAA-compliant & encrypted' },
-    { icon: <Activity className="w-4 h-4" />, text: 'Real-time clinic analytics' },
+    { icon: <Activity className="w-4 h-4" />, text: 'Real-time clinic analytics'  },
   ];
 
   return (
@@ -60,10 +74,6 @@ export default function LoginPage() {
         @keyframes pulse-slow {
           0%, 100% { opacity: 0.3; transform: scale(1); }
           50%       { opacity: 0.6; transform: scale(1.08); }
-        }
-        @keyframes shimmer {
-          0%   { background-position: -200% center; }
-          100% { background-position: 200% center; }
         }
         .fade-up   { animation: fadeUp 0.6s ease both; }
         .fade-up-1 { animation: fadeUp 0.6s ease 0.1s both; }
@@ -114,7 +124,7 @@ export default function LoginPage() {
         .login-btn:active:not(:disabled) { transform: translateY(0); }
         .login-btn:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
         .demo-btn {
-          padding: 8px 16px;
+          padding: 8px 14px;
           border: 1.5px solid #e2e8f0;
           border-radius: 10px;
           font-size: 12px;
@@ -123,24 +133,26 @@ export default function LoginPage() {
           transition: all 0.2s;
           background: white;
           color: #475569;
+          display: flex;
+          align-items: center;
+          gap: 5px;
         }
         .demo-btn:hover { border-color: #0ea5e9; color: #0284c7; background: #f0f9ff; }
+        .demo-btn-admin:hover   { border-color: #7c3aed; color: #6d28d9; background: #f5f3ff; }
+        .demo-btn-doctor:hover  { border-color: #2563eb; color: #1d4ed8; background: #eff6ff; }
+        .demo-btn-patient:hover { border-color: #0d9488; color: #0f766e; background: #f0fdfa; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .spinner { animation: spin 0.8s linear infinite; }
       `}</style>
 
       {/* ── Left Panel — Brand ── */}
       <div className="hidden lg:flex lg:w-1/2 relative flex-col justify-between overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 p-12">
-        {/* Background blobs */}
         <div className="blob absolute top-16 left-16 w-80 h-80 bg-blue-600 rounded-full mix-blend-screen filter blur-3xl opacity-25" />
         <div className="blob absolute bottom-16 right-8 w-72 h-72 bg-cyan-500 rounded-full mix-blend-screen filter blur-3xl opacity-20" style={{ animationDelay: '2s' }} />
         <div className="blob absolute top-1/2 left-1/3 w-48 h-48 bg-indigo-500 rounded-full mix-blend-screen filter blur-3xl opacity-15" style={{ animationDelay: '1s' }} />
-
-        {/* Grid overlay */}
         <div className="absolute inset-0 opacity-[0.04]"
           style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '48px 48px' }} />
 
-        {/* Top: Logo */}
         <div className="slide-in relative z-10">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 bg-gradient-to-br from-sky-400 to-blue-600 rounded-2xl flex items-center justify-center shadow-xl shadow-blue-900/50">
@@ -150,26 +162,19 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Middle: Hero text */}
         <div className="relative z-10">
           <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 text-cyan-300 px-4 py-2 rounded-full text-xs font-semibold mb-8">
             <span className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse" />
             Nigeria's Premier Healthcare Platform
           </div>
-
           <h1 className="text-4xl font-black text-white leading-tight mb-5 tracking-tight">
             Healthcare<br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-sky-300">
-              Simplified
-            </span><br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-sky-300">Simplified</span><br />
             for Nigeria
           </h1>
-
           <p className="text-slate-400 text-base leading-relaxed mb-10 max-w-sm">
             Manage patients, appointments, lab tests, pharmacy and billing — all in one secure platform built for Nigerian clinics.
           </p>
-
-          {/* Feature list */}
           <div className="space-y-3">
             {features.map((f, i) => (
               <div key={i} className="flex items-center gap-3 text-slate-300 text-sm">
@@ -180,8 +185,6 @@ export default function LoginPage() {
               </div>
             ))}
           </div>
-
-          {/* Stats row */}
           <div className="flex gap-8 mt-10 pt-8 border-t border-white/10">
             {[['8+', 'Modules'], ['65+', 'REST APIs'], ['7', 'User Roles']].map(([val, lbl]) => (
               <div key={lbl}>
@@ -192,7 +195,6 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Bottom: Testimonial */}
         <div className="relative z-10 bg-white/8 backdrop-blur-sm border border-white/15 rounded-2xl p-5">
           <div className="flex gap-1 mb-3">
             {[...Array(5)].map((_, i) => (
@@ -226,28 +228,32 @@ export default function LoginPage() {
             <span className="text-xl font-black text-gray-900 tracking-tight">CliniCore</span>
           </div>
 
-          {/* Form header */}
           <div className="fade-up mb-8">
             <h2 className="text-3xl font-black text-gray-900 tracking-tight mb-2">Welcome back</h2>
             <p className="text-gray-500 text-sm">Sign in to your CliniCore account</p>
           </div>
 
-          {/* Demo credential pills */}
+          {/* Demo credential pills — now 3 roles */}
           <div className="fade-up-1 mb-6">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Quick demo access</p>
             <div className="flex gap-2 flex-wrap">
-              <button onClick={() => fillDemo('admin')} className="demo-btn">
-                👑 Admin
+              <button type="button" onClick={() => fillDemo('admin')}
+                className="demo-btn demo-btn-admin">
+                <span>👑</span> Admin
               </button>
-              <button onClick={() => fillDemo('doctor')} className="demo-btn">
-                🩺 Doctor
+              <button type="button" onClick={() => fillDemo('doctor')}
+                className="demo-btn demo-btn-doctor">
+                <span>🩺</span> Doctor
+              </button>
+              <button type="button" onClick={() => fillDemo('patient')}
+                className="demo-btn demo-btn-patient">
+                <span>🏥</span> Patient
               </button>
             </div>
+            <p className="text-[11px] text-slate-400 mt-2">Click a role to auto-fill credentials, then sign in</p>
           </div>
 
-          {/* Form */}
           <form onSubmit={handleLogin} className="space-y-4">
-
             <div className="fade-up-2">
               <label className="block text-sm font-semibold text-gray-700 mb-2">Email Address</label>
               <input
@@ -288,7 +294,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Error */}
             {error && (
               <div className="fade-up bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl text-sm flex items-center gap-2">
                 <span className="w-1.5 h-1.5 bg-red-500 rounded-full flex-shrink-0" />
@@ -312,18 +317,16 @@ export default function LoginPage() {
             </div>
           </form>
 
-          {/* Security note */}
           <div className="fade-up-4 mt-8 flex items-center justify-center gap-2 text-slate-400 text-xs">
             <Shield className="w-3.5 h-3.5" />
             Secured with JWT authentication & role-based access control
           </div>
-
-          {/* Back to landing */}
           <div className="fade-up-4 mt-4 text-center">
             <Link to="/" className="text-xs text-slate-400 hover:text-sky-600 transition-colors">
               ← Back to homepage
             </Link>
           </div>
+
         </div>
       </div>
     </div>

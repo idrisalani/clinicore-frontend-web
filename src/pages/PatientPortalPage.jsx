@@ -58,7 +58,8 @@ const SummaryCard = ({ label, value, sub, color, bg, icon: Icon }) => (
 
 const PatientPortalPage = () => {
   const navigate = useNavigate();
-  const [patient, setPatient]           = useState(null);
+  const [authUser, setAuthUser]         = useState(null);   // logged-in user (always correct name)
+  const [patient, setPatient]           = useState(null);   // patient demographic record
   const [appointments, setAppointments] = useState([]);
   const [consultations, setConsultations] = useState([]);
   const [labOrders, setLabOrders]       = useState([]);
@@ -70,7 +71,8 @@ const PatientPortalPage = () => {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [patRes, apptRes, consultRes, labRes, rxRes, billRes] = await Promise.allSettled([
+      const [meRes, patRes, apptRes, consultRes, labRes, rxRes, billRes] = await Promise.allSettled([
+        api.get('/users/me'),
         api.get('/patients/me'),
         api.get('/appointments', { params: { limit: 5 } }),
         api.get('/consultations', { params: { limit: 5 } }),
@@ -79,12 +81,13 @@ const PatientPortalPage = () => {
         api.get('/billing/invoices', { params: { limit: 5 } }),
       ]);
 
-      if (patRes.status === 'fulfilled')    setPatient(patRes.value.data.patient);
-      if (apptRes.status === 'fulfilled')   setAppointments(apptRes.value.data.appointments || []);
+      if (meRes.status === 'fulfilled')      setAuthUser(meRes.value.data);
+      if (patRes.status === 'fulfilled')     setPatient(patRes.value.data.patient);
+      if (apptRes.status === 'fulfilled')    setAppointments(apptRes.value.data.appointments || []);
       if (consultRes.status === 'fulfilled') setConsultations(consultRes.value.data.consultations || []);
-      if (labRes.status === 'fulfilled')    setLabOrders(labRes.value.data.orders || []);
-      if (rxRes.status === 'fulfilled')     setPrescriptions(rxRes.value.data.prescriptions || []);
-      if (billRes.status === 'fulfilled')   setInvoices(billRes.value.data.invoices || []);
+      if (labRes.status === 'fulfilled')     setLabOrders(labRes.value.data.orders || []);
+      if (rxRes.status === 'fulfilled')      setPrescriptions(rxRes.value.data.prescriptions || []);
+      if (billRes.status === 'fulfilled')    setInvoices(billRes.value.data.invoices || []);
     } catch (e) {
       console.error('Portal fetch error:', e);
     } finally {
@@ -134,7 +137,7 @@ const PatientPortalPage = () => {
             <div className="fade-in">
               <p className="text-teal-200 text-sm font-medium">Welcome back</p>
               <h1 className="text-2xl font-black text-white mt-0.5">
-                {patient ? `${patient.first_name} ${patient.last_name}` : 'My Health Portal'}
+                {authUser?.full_name || (patient ? `${patient.first_name} ${patient.last_name}` : 'My Health Portal')}
               </h1>
               <p className="text-teal-200 text-sm mt-1">
                 Patient ID: #{patient?.patient_id} &nbsp;·&nbsp; {new Date().toLocaleDateString('en-NG', { weekday: 'long', day: 'numeric', month: 'long' })}
