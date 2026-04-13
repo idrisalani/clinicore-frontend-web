@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MessageSquare, Activity, Search, Stethoscope, CalendarCheck, Loader, User, ChevronDown, X } from 'lucide-react';
 import api from '../services/api.js';
+import CDSAlerts from './CDSAlerts';
+import { runCDSChecks } from '../utils/cdsEngine';
 
 // ── Shared style helpers ───────────────────────────────────────────────────
 const F = ({ label, error, children, className = '' }) => (
@@ -35,14 +37,12 @@ const PatientSelect = ({ value, onChange, error }) => {
   const [loading, setLoading]   = useState(false);
   const ref = useRef(null);
 
-  // Close on outside click
   useEffect(() => {
     const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // Search patients
   useEffect(() => {
     if (!open) return;
     const timer = setTimeout(async () => {
@@ -56,14 +56,8 @@ const PatientSelect = ({ value, onChange, error }) => {
     return () => clearTimeout(timer);
   }, [query, open]);
 
-  const select = (p) => {
-    setSelected(p);
-    setOpen(false);
-    setQuery('');
-    onChange(p.patient_id);
-  };
-
-  const clear = () => { setSelected(null); setPatients([]); onChange(''); };
+  const select = (p) => { setSelected(p); setOpen(false); setQuery(''); onChange(p.patient_id); };
+  const clear  = () => { setSelected(null); setPatients([]); onChange(''); };
 
   return (
     <div ref={ref} className="relative">
@@ -94,7 +88,7 @@ const PatientSelect = ({ value, onChange, error }) => {
             onFocus={() => setOpen(true)}
             className="flex-1 bg-transparent outline-none text-sm text-slate-700 placeholder-slate-400"
           />
-          {loading && <Loader className="w-3.5 h-3.5 text-teal-500 animate-spin flex-shrink-0" />}
+          {loading  && <Loader    className="w-3.5 h-3.5 text-teal-500 animate-spin flex-shrink-0" />}
           {!loading && <ChevronDown className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />}
         </div>
       )}
@@ -109,24 +103,18 @@ const PatientSelect = ({ value, onChange, error }) => {
             <div className="py-4 text-center text-sm text-slate-400">
               {query.length > 0 ? 'No patients found' : 'Start typing to search…'}
             </div>
-          ) : (
-            patients.map(p => (
-              <button
-                key={p.patient_id}
-                type="button"
-                onMouseDown={() => select(p)}
-                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-teal-50 transition-colors text-left"
-              >
-                <div className="w-7 h-7 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <span className="text-xs font-bold text-teal-700">{p.first_name?.[0]}{p.last_name?.[0]}</span>
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-slate-800">{p.first_name} {p.last_name}</p>
-                  <p className="text-xs text-slate-400">ID: {p.patient_id} {p.phone ? `· ${p.phone}` : ''}</p>
-                </div>
-              </button>
-            ))
-          )}
+          ) : patients.map(p => (
+            <button key={p.patient_id} type="button" onMouseDown={() => select(p)}
+              className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-teal-50 transition-colors text-left">
+              <div className="w-7 h-7 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <span className="text-xs font-bold text-teal-700">{p.first_name?.[0]}{p.last_name?.[0]}</span>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-slate-800">{p.first_name} {p.last_name}</p>
+                <p className="text-xs text-slate-400">ID: {p.patient_id} {p.phone ? `· ${p.phone}` : ''}</p>
+              </div>
+            </button>
+          ))}
         </div>
       )}
     </div>
@@ -151,14 +139,38 @@ const ConsultationForm = ({
   consultation = null, patientId = null, appointmentId = null,
   isLoading = false, onSubmit, onCancel, mode = 'add',
 }) => {
-  const [form, setForm]     = useState({ ...empty, appointment_id: appointmentId || '', patient_id: patientId || '' });
-  const [errors, setErrors] = useState({});
+  const [form, setForm]         = useState({ ...empty, appointment_id: appointmentId || '', patient_id: patientId || '' });
+  const [errors, setErrors]     = useState({});
+  const [cdsAlerts, setCdsAlerts] = useState([]);   // ← CDS
 
+  // Populate form when editing
   useEffect(() => {
     if (consultation && mode === 'edit') {
       setForm(f => ({ ...f, ...Object.fromEntries(Object.keys(empty).map(k => [k, consultation[k] ?? empty[k]])) }));
     }
   }, [consultation, mode]);
+
+  // ── CDS: re-run all checks whenever relevant fields change ───────────────
+  useEffect(() => {
+    const result = runCDSChecks({
+      medicationsPrescribed:   form.medications_prescribed,
+      currentMedications:      form.medications,
+      allergies:               form.allergies,
+      vital_signs_bp:          form.vital_signs_bp,
+      vital_signs_temp:        form.vital_signs_temp,
+      vital_signs_pulse:       form.vital_signs_pulse,
+      vital_signs_respiration: form.vital_signs_respiration,
+    });
+    setCdsAlerts(result.alerts);
+  }, [
+    form.medications_prescribed,
+    form.medications,
+    form.allergies,
+    form.vital_signs_bp,
+    form.vital_signs_temp,
+    form.vital_signs_pulse,
+    form.vital_signs_respiration,
+  ]);
 
   const set = (e) => {
     const { name, value, type } = e.target;
@@ -179,12 +191,10 @@ const ConsultationForm = ({
   const submit = (e) => {
     e.preventDefault();
     if (validate() && onSubmit) {
-      // Always ensure consultation_date is set — backend requires it
-      const payload = {
+      onSubmit({
         ...form,
         consultation_date: form.consultation_date || new Date().toISOString().split('T')[0],
-      };
-      onSubmit(payload);
+      });
     }
   };
 
@@ -233,13 +243,23 @@ const ConsultationForm = ({
 
       <Section icon={Activity} title="Vital Signs" color="text-emerald-600" bg="bg-emerald-50 border-emerald-100">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[['BP (mmHg)', 'vital_signs_bp', 'e.g., 120/80'], ['Temp (°C)', 'vital_signs_temp', '37.0'], ['Pulse (bpm)', 'vital_signs_pulse', '72'], ['Respiration/min', 'vital_signs_respiration', '16']].map(([lbl, name, ph]) => (
+          {[
+            ['BP (mmHg)',       'vital_signs_bp',          'e.g., 120/80'],
+            ['Temp (°C)',       'vital_signs_temp',         '37.0'],
+            ['Pulse (bpm)',     'vital_signs_pulse',        '72'],
+            ['Respiration/min', 'vital_signs_respiration',  '16'],
+          ].map(([lbl, name, ph]) => (
             <F key={name} label={lbl}>
               <input name={name} value={form[name]} onChange={set} className={inp()} placeholder={ph} />
             </F>
           ))}
         </div>
       </Section>
+
+      {/* ── CDS Alert Panel — appears between vitals and diagnosis ── */}
+      {cdsAlerts.length > 0 && (
+        <CDSAlerts alerts={cdsAlerts} />
+      )}
 
       <Section icon={Search} title="Physical Examination" color="text-amber-600" bg="bg-amber-50 border-amber-100">
         <F label="Findings">
