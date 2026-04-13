@@ -4,7 +4,7 @@ import {
   Menu, X, Home, Users, Calendar, FileText, Beaker, Pill,
   CreditCard, LogOut, ChevronDown, Shield, Settings, AlertTriangle,
   UserCog, ClipboardList, HeartPulse, FlaskConical,
-  Stethoscope, Receipt, BarChart3, User, Heart,
+  Stethoscope, Receipt, BarChart3, User, Heart, Activity,
 } from 'lucide-react';
 import LogoutModal from './LogoutModal';
 
@@ -113,20 +113,22 @@ const NAV_CONFIG = {
       { icon: Receipt,  label: 'Billing',      path: '/billing'      },
     ],
   },
+
+  // ── PATIENT — updated with portal routes ────────────────────────────────────
   patient: {
-    label: 'Patient Portal',
-    color: 'from-indigo-900 to-indigo-800',
-    accent: 'bg-indigo-500',
+    label: 'My Health Portal',
+    color: 'from-teal-900 to-teal-800',
+    accent: 'bg-teal-500',
     badge: 'PATIENT',
-    badgeColor: 'bg-indigo-400',
+    badgeColor: 'bg-teal-500',
     items: [
-      { icon: Home,         label: 'My Dashboard',  path: '/dashboard'     },
-      { icon: Calendar,     label: 'Appointments',  path: '/appointments'  },
-      { icon: FileText,     label: 'My Records',    path: '/consultations' },
-      { icon: FlaskConical, label: 'Lab Results',   path: '/lab'           },
-      { icon: Pill,         label: 'Prescriptions', path: '/pharmacy'      },
-      { icon: Receipt,      label: 'My Bills',      path: '/billing'       },
-      { icon: User,         label: 'My Profile',    path: '/patients'      },
+      { icon: Activity,     label: 'My Health',     path: '/portal'          },
+      { icon: Calendar,     label: 'Appointments',  path: '/appointments'    },
+      { icon: FileText,     label: 'My Records',    path: '/consultations'   },
+      { icon: FlaskConical, label: 'Lab Results',   path: '/lab'             },
+      { icon: Pill,         label: 'Prescriptions', path: '/pharmacy'        },
+      { icon: Receipt,      label: 'My Bills',      path: '/billing'         },
+      { icon: User,         label: 'My Profile',    path: '/portal/profile'  },
     ],
   },
 };
@@ -152,7 +154,12 @@ const Sidebar = ({ userRole, userName }) => {
 
   const role   = (userRole || '').toLowerCase().replace(/\s+/g, '_');
   const config = NAV_CONFIG[role] || DEFAULT_NAV;
-  const isActive = (path) => location.pathname === path;
+
+  // Active check: exact match OR prefix match for nested portal routes
+  const isActive = (path) =>
+    path === '/portal'
+      ? location.pathname === '/portal'             // exact — avoid matching /portal/profile
+      : location.pathname === path || location.pathname.startsWith(path + '/');
 
   const handleLogoutConfirm = () => {
     localStorage.removeItem('clinicore_access_token');

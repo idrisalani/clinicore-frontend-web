@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, Navigate } from 'react-router-dom';
 import { authService } from '../services/authService';
 import { userService } from '../services/userService';
 import { getPatientStats } from '../services/patientService';
@@ -12,7 +12,7 @@ import {
   Users, Calendar, FileText, Beaker, Pill, CreditCard,
   HeartPulse, FlaskConical, Stethoscope, Receipt, Shield,
   UserCog, BarChart3, ClipboardList, ArrowRight, AlertCircle,
-  Settings, TrendingUp
+  Settings, TrendingUp, Activity,
 } from 'lucide-react';
 import { useRole } from '../hooks/useRole';
 
@@ -121,23 +121,25 @@ const ROLE_CONFIG = {
       { label: 'Billing',      path: '/billing',      icon: Receipt,  desc: 'Process payments'           },
     ],
   },
+
+  // ── PATIENT — redirected immediately to /portal, config kept as fallback ──
   patient: {
     greeting: 'My Health Portal',
     subtitle: 'Your personal health overview',
-    theme: { primary: '#4f46e5', light: '#eef2ff' },
+    theme: { primary: '#0d9488', light: '#ccfbf1' },
     quickActions: [
-      { label: 'Book Appointment',  path: '/appointments',  icon: Calendar,     color: 'bg-indigo-600' },
-      { label: 'My Prescriptions',  path: '/pharmacy',      icon: Pill,         color: 'bg-green-600'  },
-      { label: 'View Lab Results',  path: '/lab',           icon: FlaskConical, color: 'bg-orange-600' },
-      { label: 'Pay Bills',         path: '/billing',       icon: Receipt,      color: 'bg-red-600'    },
+      { label: 'Book Appointment', path: '/appointments',   icon: Calendar,    color: 'bg-teal-600'   },
+      { label: 'My Prescriptions', path: '/pharmacy',       icon: Pill,        color: 'bg-emerald-600'},
+      { label: 'View Lab Results', path: '/lab',            icon: FlaskConical,color: 'bg-blue-600'   },
+      { label: 'My Portal',        path: '/portal',         icon: Activity,    color: 'bg-indigo-600' },
     ],
     modules: [
-      { label: 'My Appointments', path: '/appointments',  icon: Calendar,     desc: 'View & book visits'    },
-      { label: 'Medical Records',  path: '/consultations', icon: FileText,     desc: 'Consultation history'  },
-      { label: 'Lab Results',      path: '/lab',           icon: FlaskConical, desc: 'View test results'     },
-      { label: 'Prescriptions',    path: '/pharmacy',      icon: Pill,         desc: 'Active medications'    },
-      { label: 'My Bills',         path: '/billing',       icon: Receipt,      desc: 'Invoices & payments'   },
-      { label: 'My Profile',       path: '/patients',      icon: Users,        desc: 'Personal information'  },
+      { label: 'My Health',       path: '/portal',         icon: Activity,    desc: 'Portal dashboard'     },
+      { label: 'Appointments',    path: '/appointments',   icon: Calendar,    desc: 'View & book visits'   },
+      { label: 'Medical Records', path: '/consultations',  icon: FileText,    desc: 'Consultation history' },
+      { label: 'Lab Results',     path: '/lab',            icon: FlaskConical,desc: 'View test results'    },
+      { label: 'Prescriptions',   path: '/pharmacy',       icon: Pill,        desc: 'Active medications'   },
+      { label: 'My Profile',      path: '/portal/profile', icon: Users,       desc: 'Personal information' },
     ],
   },
 };
@@ -145,57 +147,53 @@ const ROLE_CONFIG = {
 const DEFAULT_CONFIG = ROLE_CONFIG.doctor;
 
 // ─── Stat mapping per role ─────────────────────────────────────────────────────
-// Returns an array of { label, value, icon, color } from the raw API stats objects
 const buildStats = (role, allStats) => {
-  const {
-    patients, appointments, consultations, lab, pharmacy, billing,
-  } = allStats;
-
+  const { patients, appointments, consultations, lab, pharmacy, billing } = allStats;
   const fmt = (n) => (n != null ? String(n) : '—');
   const fmtCurrency = (n) => n != null ? `₦${parseFloat(n).toLocaleString('en-NG', { maximumFractionDigits: 0 })}` : '—';
 
   const maps = {
     admin: [
-      { label: 'Total Patients',      value: fmt(patients?.total_patients),              icon: Users,        color: 'bg-blue-100 text-blue-700'   },
-      { label: "Today's Appts",       value: fmt(appointments?.today),                   icon: Calendar,     color: 'bg-green-100 text-green-700' },
-      { label: 'Total Revenue',        value: fmtCurrency(billing?.total_revenue),        icon: CreditCard,   color: 'bg-purple-100 text-purple-700'},
-      { label: 'Pending Lab Results',  value: fmt(lab?.pending_results),                  icon: Beaker,       color: 'bg-orange-100 text-orange-700'},
+      { label: 'Total Patients',      value: fmt(patients?.total_patients),                              icon: Users,        color: 'bg-blue-100 text-blue-700'    },
+      { label: "Today's Appts",       value: fmt(appointments?.today),                                   icon: Calendar,     color: 'bg-green-100 text-green-700'  },
+      { label: 'Total Revenue',        value: fmtCurrency(billing?.total_revenue),                        icon: CreditCard,   color: 'bg-purple-100 text-purple-700' },
+      { label: 'Pending Lab Results',  value: fmt(lab?.pending_results),                                  icon: Beaker,       color: 'bg-orange-100 text-orange-700' },
     ],
     doctor: [
-      { label: 'My Patients',          value: fmt(patients?.total_patients),              icon: Users,        color: 'bg-blue-100 text-blue-700'   },
-      { label: "Today's Appts",        value: fmt(appointments?.today || appointments?.scheduled), icon: Calendar, color: 'bg-green-100 text-green-700' },
-      { label: 'Pending Notes',        value: fmt(consultations?.by_status?.Draft),       icon: FileText,     color: 'bg-yellow-100 text-yellow-700'},
-      { label: 'Lab Requests',         value: fmt(lab?.total_orders),                     icon: FlaskConical, color: 'bg-orange-100 text-orange-700'},
+      { label: 'My Patients',          value: fmt(patients?.total_patients),                              icon: Users,        color: 'bg-blue-100 text-blue-700'    },
+      { label: "Today's Appts",        value: fmt(appointments?.today || appointments?.scheduled),         icon: Calendar,     color: 'bg-green-100 text-green-700'  },
+      { label: 'Pending Notes',        value: fmt(consultations?.by_status?.Draft),                       icon: FileText,     color: 'bg-yellow-100 text-yellow-700' },
+      { label: 'Lab Requests',         value: fmt(lab?.total_orders),                                     icon: FlaskConical, color: 'bg-orange-100 text-orange-700' },
     ],
     nurse: [
-      { label: 'Patients',             value: fmt(patients?.total_patients),              icon: Users,        color: 'bg-teal-100 text-teal-700'   },
-      { label: 'Appointments Today',   value: fmt(appointments?.today || appointments?.scheduled), icon: Calendar, color: 'bg-green-100 text-green-700' },
-      { label: 'Vitals Due',           value: fmt(consultations?.total),                  icon: HeartPulse,   color: 'bg-red-100 text-red-700'     },
-      { label: 'Medications',          value: fmt(pharmacy?.total_prescriptions),         icon: Pill,         color: 'bg-blue-100 text-blue-700'   },
+      { label: 'Patients',             value: fmt(patients?.total_patients),                              icon: Users,        color: 'bg-teal-100 text-teal-700'    },
+      { label: 'Appointments Today',   value: fmt(appointments?.today || appointments?.scheduled),         icon: Calendar,     color: 'bg-green-100 text-green-700'  },
+      { label: 'Vitals Due',           value: fmt(consultations?.total),                                  icon: HeartPulse,   color: 'bg-red-100 text-red-700'      },
+      { label: 'Medications',          value: fmt(pharmacy?.total_prescriptions),                         icon: Pill,         color: 'bg-blue-100 text-blue-700'    },
     ],
     pharmacist: [
-      { label: 'Prescriptions',        value: fmt(pharmacy?.total_prescriptions),         icon: Pill,         color: 'bg-emerald-100 text-emerald-700'},
-      { label: 'Active Prescriptions', value: fmt(pharmacy?.by_status?.Active),           icon: TrendingUp,   color: 'bg-green-100 text-green-700'   },
-      { label: 'Medications',          value: fmt(pharmacy?.total_medications),           icon: ClipboardList,color: 'bg-blue-100 text-blue-700'     },
-      { label: 'Needing Refill',       value: fmt(pharmacy?.medications_needing_refill),  icon: AlertCircle,  color: 'bg-orange-100 text-orange-700' },
+      { label: 'Prescriptions',        value: fmt(pharmacy?.total_prescriptions),                         icon: Pill,         color: 'bg-emerald-100 text-emerald-700' },
+      { label: 'Active Prescriptions', value: fmt(pharmacy?.by_status?.Active),                           icon: TrendingUp,   color: 'bg-green-100 text-green-700'     },
+      { label: 'Medications',          value: fmt(pharmacy?.total_medications),                           icon: ClipboardList,color: 'bg-blue-100 text-blue-700'        },
+      { label: 'Needing Refill',       value: fmt(pharmacy?.medications_needing_refill),                  icon: AlertCircle,  color: 'bg-orange-100 text-orange-700'    },
     ],
     lab_technician: [
-      { label: 'Pending Tests',        value: fmt(lab?.by_status?.Pending),               icon: FlaskConical, color: 'bg-orange-100 text-orange-700'},
-      { label: 'In Progress',          value: fmt(lab?.by_status?.['In Progress']),        icon: TrendingUp,   color: 'bg-yellow-100 text-yellow-700'},
-      { label: 'Completed Today',      value: fmt(lab?.by_status?.Completed),             icon: BarChart3,    color: 'bg-green-100 text-green-700' },
-      { label: 'Total Patients',       value: fmt(patients?.total_patients),              icon: Users,        color: 'bg-blue-100 text-blue-700'   },
+      { label: 'Pending Tests',        value: fmt(lab?.by_status?.Pending),                               icon: FlaskConical, color: 'bg-orange-100 text-orange-700' },
+      { label: 'In Progress',          value: fmt(lab?.by_status?.['In Progress']),                       icon: TrendingUp,   color: 'bg-yellow-100 text-yellow-700' },
+      { label: 'Completed Today',      value: fmt(lab?.by_status?.Completed),                             icon: BarChart3,    color: 'bg-green-100 text-green-700'   },
+      { label: 'Total Patients',       value: fmt(patients?.total_patients),                              icon: Users,        color: 'bg-blue-100 text-blue-700'     },
     ],
     receptionist: [
-      { label: "Today's Appts",        value: fmt(appointments?.today || appointments?.scheduled), icon: Calendar, color: 'bg-pink-100 text-pink-700'   },
-      { label: 'Total Patients',       value: fmt(patients?.total_patients),              icon: Users,        color: 'bg-blue-100 text-blue-700'   },
-      { label: 'Pending Bills',        value: fmt(billing?.by_status?.Issued),            icon: Receipt,      color: 'bg-orange-100 text-orange-700'},
-      { label: 'Paid Invoices',        value: fmt(billing?.by_status?.Paid),              icon: CreditCard,   color: 'bg-green-100 text-green-700' },
+      { label: "Today's Appts",        value: fmt(appointments?.today || appointments?.scheduled),         icon: Calendar,     color: 'bg-pink-100 text-pink-700'    },
+      { label: 'Total Patients',       value: fmt(patients?.total_patients),                              icon: Users,        color: 'bg-blue-100 text-blue-700'    },
+      { label: 'Pending Bills',        value: fmt(billing?.by_status?.Issued),                            icon: Receipt,      color: 'bg-orange-100 text-orange-700' },
+      { label: 'Paid Invoices',        value: fmt(billing?.by_status?.Paid),                              icon: CreditCard,   color: 'bg-green-100 text-green-700'  },
     ],
     patient: [
-      { label: 'Appointments',         value: fmt(appointments?.total),                   icon: Calendar,     color: 'bg-indigo-100 text-indigo-700'},
-      { label: 'Prescriptions',        value: fmt(pharmacy?.total_prescriptions),         icon: Pill,         color: 'bg-green-100 text-green-700' },
-      { label: 'Lab Results',          value: fmt(lab?.total_orders),                     icon: FlaskConical, color: 'bg-orange-100 text-orange-700'},
-      { label: 'Pending Bills',        value: fmt(billing?.by_status?.Issued),            icon: Receipt,      color: 'bg-red-100 text-red-700'     },
+      { label: 'Appointments',         value: fmt(appointments?.total),                                   icon: Calendar,     color: 'bg-teal-100 text-teal-700'    },
+      { label: 'Prescriptions',        value: fmt(pharmacy?.total_prescriptions),                         icon: Pill,         color: 'bg-emerald-100 text-emerald-700' },
+      { label: 'Lab Results',          value: fmt(lab?.total_orders),                                     icon: FlaskConical, color: 'bg-blue-100 text-blue-700'    },
+      { label: 'Pending Bills',        value: fmt(billing?.by_status?.Issued),                            icon: Receipt,      color: 'bg-amber-100 text-amber-700'  },
     ],
   };
 
@@ -249,7 +247,7 @@ export default function DashboardPage() {
   const [pageLoading, setPageLoading] = useState(true);
   const [error, setError]             = useState('');
   const navigate = useNavigate();
-  const { role } = useRole();
+  const { role, isPatient } = useRole();
 
   // ── Load user profile ────────────────────────────────────────────────────
   useEffect(() => {
@@ -274,7 +272,6 @@ export default function DashboardPage() {
     const fetchAllStats = async () => {
       setStatsLoading(true);
       const safeCall = async (fn) => { try { return await fn(); } catch { return null; } };
-
       const [patients, appointments, consultations, lab, pharmacy, billing] = await Promise.all([
         safeCall(getPatientStats),
         safeCall(getAppointmentStats),
@@ -283,15 +280,17 @@ export default function DashboardPage() {
         safeCall(getPharmacyStats),
         safeCall(getBillingStats),
       ]);
-
       setAllStats({ patients, appointments, consultations, lab, pharmacy, billing });
       setStatsLoading(false);
     };
-
     fetchAllStats();
   }, []);
 
-  // ── Loading state ─────────────────────────────────────────────────────────
+  // ── PATIENT REDIRECT — after all hooks, before render ───────────────────
+  // Must be here (not before hooks) to satisfy React Rules of Hooks
+  if (isPatient) return <Navigate to="/portal" replace />;
+
+  // ── Loading / error states ────────────────────────────────────────────────
   if (pageLoading) return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="text-center">
@@ -387,7 +386,6 @@ export default function DashboardPage() {
                   </div>
                 ))}
               </div>
-
               {permissions.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-gray-50">
                   <p className="text-xs text-gray-400 uppercase tracking-wide font-medium mb-2">
@@ -414,9 +412,7 @@ export default function DashboardPage() {
 
         {/* ── Modules Grid ── */}
         <div>
-          <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">
-            {resolvedRole === 'patient' ? 'My Health Modules' : 'Modules'}
-          </h2>
+          <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Modules</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {config.modules.map((mod, i) => (
               <ModuleCard key={i} mod={mod} />

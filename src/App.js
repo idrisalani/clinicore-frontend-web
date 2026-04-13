@@ -20,6 +20,9 @@ import QueuePage from './pages/QueuePage';
 import FinancialReportsPage from './pages/FinancialReportsPage';
 import DrugExpiryPage from './pages/DrugExpiryPage';
 import MaternityPage from './pages/MaternityPage';
+// Patient Portal
+import PatientPortalPage  from './pages/PatientPortalPage';
+import PatientProfilePage from './pages/PatientProfilePage';
 
 // Admin pages
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -112,6 +115,10 @@ function App() {
         <Route path="/reports"       element={<Protected><FinancialReportsPage /></Protected>} />
         <Route path="/drug-expiry"   element={<Protected><DrugExpiryPage /></Protected>} />
         <Route path="/maternity"     element={<Protected><MaternityPage /></Protected>} />
+
+        {/* PATIENT PORTAL */}
+        <Route path="/portal"         element={<Protected><PatientPortalPage /></Protected>} />
+        <Route path="/portal/profile" element={<Protected><PatientProfilePage /></Protected>} />
 
         {/* ADMIN ROUTES */}
         <Route path="/admin"             element={<AdminOnly><AdminDashboard /></AdminOnly>} />
