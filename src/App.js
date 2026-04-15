@@ -21,6 +21,9 @@ import FinancialReportsPage from './pages/FinancialReportsPage';
 import DrugExpiryPage from './pages/DrugExpiryPage';
 import MaternityPage from './pages/MaternityPage';
 import TelemedicinePage from './pages/TelemedicinePage';
+import SymptomCheckerPage from './pages/SymptomCheckerPage';
+import ImagingPage from './pages/ImagingPage';
+import BedManagementPage from './pages/BedManagementPage';
 
 // Patient Portal
 import PatientPortalPage  from './pages/PatientPortalPage';
@@ -105,19 +108,22 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
 
         {/* CORE MODULES */}
-        <Route path="/dashboard"     element={<Protected><DashboardPage /></Protected>} />
-        <Route path="/patients"      element={<Protected><PatientsPage /></Protected>} />
-        <Route path="/patients/:id"  element={<Protected><PatientDetailPage /></Protected>} />
-        <Route path="/appointments"  element={<Protected><AppointmentsPage /></Protected>} />
-        <Route path="/consultations" element={<Protected><ConsultationsPage /></Protected>} />
-        <Route path="/lab"           element={<Protected><LabPage /></Protected>} />
-        <Route path="/pharmacy"      element={<Protected><PharmacyPage /></Protected>} />
-        <Route path="/billing"       element={<Protected><BillingPage /></Protected>} />
-        <Route path="/queue"         element={<Protected><QueuePage /></Protected>} />
-        <Route path="/reports"       element={<Protected><FinancialReportsPage /></Protected>} />
-        <Route path="/drug-expiry"   element={<Protected><DrugExpiryPage /></Protected>} />
-        <Route path="/maternity"     element={<Protected><MaternityPage /></Protected>} />
-        <Route path="/telemedicine"  element={<Protected><TelemedicinePage /></Protected>} />
+        <Route path="/dashboard"       element={<Protected><DashboardPage /></Protected>} />
+        <Route path="/patients"        element={<Protected><PatientsPage /></Protected>} />
+        <Route path="/patients/:id"    element={<Protected><PatientDetailPage /></Protected>} />
+        <Route path="/appointments"    element={<Protected><AppointmentsPage /></Protected>} />
+        <Route path="/consultations"   element={<Protected><ConsultationsPage /></Protected>} />
+        <Route path="/lab"             element={<Protected><LabPage /></Protected>} />
+        <Route path="/pharmacy"        element={<Protected><PharmacyPage /></Protected>} />
+        <Route path="/billing"         element={<Protected><BillingPage /></Protected>} />
+        <Route path="/queue"           element={<Protected><QueuePage /></Protected>} />
+        <Route path="/reports"         element={<Protected><FinancialReportsPage /></Protected>} />
+        <Route path="/drug-expiry"     element={<Protected><DrugExpiryPage /></Protected>} />
+        <Route path="/maternity"       element={<Protected><MaternityPage /></Protected>} />
+        <Route path="/telemedicine"    element={<Protected><TelemedicinePage /></Protected>} />
+        <Route path="/symptom-checker" element={<Protected><SymptomCheckerPage /></Protected>} />
+        <Route path="/imaging"         element={<Protected><ImagingPage /></Protected>} />
+        <Route path="/beds"            element={<Protected><BedManagementPage /></Protected>} />
 
         {/* PATIENT PORTAL */}
         <Route path="/portal"         element={<Protected><PatientPortalPage /></Protected>} />
