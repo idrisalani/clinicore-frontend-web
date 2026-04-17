@@ -235,7 +235,7 @@ export default function StaffSchedulingPage() {
     try {
       const [schedRes, staffRes, tmplRes, leaveRes, swapRes, statsRes] = await Promise.all([
         api.get('/scheduling', { params: { start_date: startDate, end_date: endDate, department: deptFilter || undefined } }),
-        api.get('/users', { params: { limit: 100, role: 'all' } }),
+        api.get('/admin/users', { params: { limit: 100 } }),
         api.get('/scheduling/templates'),
         api.get('/scheduling/leaves', { params: { status: 'Pending' } }),
         api.get('/scheduling/swaps',  { params: { status: 'Pending'  } }),
