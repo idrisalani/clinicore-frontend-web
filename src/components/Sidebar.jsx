@@ -4,7 +4,7 @@ import {
   Menu, X, Home, Users, Calendar, FileText, Beaker, Pill,
   CreditCard, LogOut, ChevronDown, Shield, Settings, AlertTriangle,
   UserCog, ClipboardList, HeartPulse, FlaskConical, ScanLine,
-  Stethoscope, Receipt, BarChart3, User, Heart, Activity, Video, Thermometer, BedDouble, Truck
+  Stethoscope, Receipt, BarChart3, User, Heart, Activity, Video, Thermometer, BedDouble, Truck, CalendarDays
 } from 'lucide-react';
 import LogoutModal from './LogoutModal';
 
@@ -37,6 +37,7 @@ const NAV_CONFIG = {
       { icon: ScanLine,      label: 'Medical Imaging',  path: '/imaging'           },
       { icon: BedDouble,     label: 'Bed Management',   path: '/beds'              },
       { icon: Truck,         label: 'Supply Chain',     path: '/supply-chain'      },
+      { icon: CalendarDays,  label: 'Staff Scheduling', path: '/scheduling'        },
     ],
   },
   doctor: {
@@ -58,7 +59,8 @@ const NAV_CONFIG = {
       { icon: BarChart3,     label: 'Fin. Reports',     path: '/reports'       },
       { icon: Video,         label: 'Telemedicine',     path: '/telemedicine'  },
       { icon: ScanLine,      label: 'Medical Imaging',  path: '/imaging'       },
-      { icon: BedDouble,     label: 'Bed Management',   path: '/beds'          },  
+      { icon: BedDouble,     label: 'Bed Management',   path: '/beds'          }, 
+      { icon: CalendarDays,  label: 'Staff Scheduling', path: '/scheduling'    }, 
     ],
   },
   nurse: {

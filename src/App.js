@@ -25,6 +25,7 @@ import SymptomCheckerPage from './pages/SymptomCheckerPage';
 import ImagingPage from './pages/ImagingPage';
 import BedManagementPage from './pages/BedManagementPage';
 import SupplyChainPage from './pages/SupplyChainPage';
+import StaffSchedulingPage from './pages/StaffSchedulingPage';
 
 // Patient Portal
 import PatientPortalPage  from './pages/PatientPortalPage';
@@ -126,6 +127,7 @@ function App() {
         <Route path="/imaging"         element={<Protected><ImagingPage /></Protected>} />
         <Route path="/beds"            element={<Protected><BedManagementPage /></Protected>} />
         <Route path="/supply-chain"    element={<Protected><SupplyChainPage /></Protected>} />
+        <Route path="/scheduling"      element={<Protected><StaffSchedulingPage /></Protected>} />
 
         {/* PATIENT PORTAL */}
         <Route path="/portal"         element={<Protected><PatientPortalPage /></Protected>} />
