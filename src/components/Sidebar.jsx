@@ -4,7 +4,7 @@ import {
   Menu, X, Home, Users, Calendar, FileText, Beaker, Pill,
   CreditCard, LogOut, ChevronDown, Shield, Settings, AlertTriangle,
   UserCog, ClipboardList, HeartPulse, FlaskConical, ScanLine,
-  Stethoscope, Receipt, BarChart3, User, Heart, Activity, Video, Thermometer, BedDouble
+  Stethoscope, Receipt, BarChart3, User, Heart, Activity, Video, Thermometer, BedDouble, Truck
 } from 'lucide-react';
 import LogoutModal from './LogoutModal';
 
@@ -36,6 +36,7 @@ const NAV_CONFIG = {
       { icon: Settings,      label: 'Settings',         path: '/admin/settings'    },
       { icon: ScanLine,      label: 'Medical Imaging',  path: '/imaging'           },
       { icon: BedDouble,     label: 'Bed Management',   path: '/beds'              },
+      { icon: Truck,         label: 'Supply Chain',     path: '/supply-chain'      },
     ],
   },
   doctor: {
@@ -85,12 +86,13 @@ const NAV_CONFIG = {
     badge: 'PHARMACIST',
     badgeColor: 'bg-emerald-500',
     items: [
-      { icon: Home,          label: 'Dashboard',      path: '/dashboard'   },
-      { icon: Pill,          label: 'Prescriptions',  path: '/pharmacy'    },
-      { icon: ClipboardList, label: 'Drug Inventory', path: '/pharmacy'    },
-      { icon: AlertTriangle, label: 'Drug Expiry',    path: '/drug-expiry' },
-      { icon: Users,         label: 'Patients',       path: '/patients'    },
-      { icon: Receipt,       label: 'Billing',        path: '/billing'     },
+      { icon: Home,          label: 'Dashboard',      path: '/dashboard'      },
+      { icon: Pill,          label: 'Prescriptions',  path: '/pharmacy'       },
+      { icon: ClipboardList, label: 'Drug Inventory', path: '/pharmacy'       },
+      { icon: AlertTriangle, label: 'Drug Expiry',    path: '/drug-expiry'    },
+      { icon: Users,         label: 'Patients',       path: '/patients'       },
+      { icon: Receipt,       label: 'Billing',        path: '/billing'        },
+      { icon: Truck,         label: 'Supply Chain',   path: '/supply-chain'   },
     ],
   },
   lab_technician: {

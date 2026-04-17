@@ -24,6 +24,7 @@ import TelemedicinePage from './pages/TelemedicinePage';
 import SymptomCheckerPage from './pages/SymptomCheckerPage';
 import ImagingPage from './pages/ImagingPage';
 import BedManagementPage from './pages/BedManagementPage';
+import SupplyChainPage from './pages/SupplyChainPage';
 
 // Patient Portal
 import PatientPortalPage  from './pages/PatientPortalPage';
@@ -124,6 +125,7 @@ function App() {
         <Route path="/symptom-checker" element={<Protected><SymptomCheckerPage /></Protected>} />
         <Route path="/imaging"         element={<Protected><ImagingPage /></Protected>} />
         <Route path="/beds"            element={<Protected><BedManagementPage /></Protected>} />
+        <Route path="/supply-chain"    element={<Protected><SupplyChainPage /></Protected>} />
 
         {/* PATIENT PORTAL */}
         <Route path="/portal"         element={<Protected><PatientPortalPage /></Protected>} />
