@@ -3,6 +3,7 @@ import { MessageSquare, Activity, Search, Stethoscope, CalendarCheck, Loader, Us
 import api from '../services/api.js';
 import CDSAlerts from './CDSAlerts';
 import { runCDSChecks } from '../utils/cdsEngine';
+import ICD10Picker from './ICD10Picker';
 
 // ── Shared style helpers ───────────────────────────────────────────────────
 const F = ({ label, error, children, className = '' }) => (
@@ -88,8 +89,8 @@ const PatientSelect = ({ value, onChange, error }) => {
             onFocus={() => setOpen(true)}
             className="flex-1 bg-transparent outline-none text-sm text-slate-700 placeholder-slate-400"
           />
-          {loading  && <Loader    className="w-3.5 h-3.5 text-teal-500 animate-spin flex-shrink-0" />}
-          {!loading && <ChevronDown className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />}
+          {loading   && <Loader     className="w-3.5 h-3.5 text-teal-500 animate-spin flex-shrink-0" />}
+          {!loading  && <ChevronDown className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />}
         </div>
       )}
 
@@ -121,6 +122,20 @@ const PatientSelect = ({ value, onChange, error }) => {
   );
 };
 
+// ── Parse saved ICD codes back to array on edit ───────────────────────────
+const parseIcdCodes = (consultation) => {
+  if (!consultation) return [];
+  try {
+    if (consultation.icd_codes) return JSON.parse(consultation.icd_codes);
+  } catch {}
+  // Fallback: if only the legacy icd_code text field exists, wrap it
+  if (consultation.diagnosis_icd || consultation.icd_code) {
+    const code = consultation.diagnosis_icd || consultation.icd_code;
+    return [{ code, description: consultation.diagnosis || code, category: 'Other' }];
+  }
+  return [];
+};
+
 // ── Empty form state ───────────────────────────────────────────────────────
 const empty = {
   appointment_id: '', patient_id: '', doctor_id: '',
@@ -141,12 +156,14 @@ const ConsultationForm = ({
 }) => {
   const [form, setForm]         = useState({ ...empty, appointment_id: appointmentId || '', patient_id: patientId || '' });
   const [errors, setErrors]     = useState({});
-  const [cdsAlerts, setCdsAlerts] = useState([]);   // ← CDS
+  const [cdsAlerts, setCdsAlerts] = useState([]);
+  const [icdCodes, setIcdCodes] = useState([]);    // ← ICD-10 structured codes
 
   // Populate form when editing
   useEffect(() => {
     if (consultation && mode === 'edit') {
       setForm(f => ({ ...f, ...Object.fromEntries(Object.keys(empty).map(k => [k, consultation[k] ?? empty[k]])) }));
+      setIcdCodes(parseIcdCodes(consultation));
     }
   }, [consultation, mode]);
 
@@ -193,7 +210,13 @@ const ConsultationForm = ({
     if (validate() && onSubmit) {
       onSubmit({
         ...form,
-        consultation_date: form.consultation_date || new Date().toISOString().split('T')[0],
+        consultation_date:    form.consultation_date || new Date().toISOString().split('T')[0],
+        // ICD-10 structured fields
+        icd_codes:            JSON.stringify(icdCodes),
+        primary_icd_code:     icdCodes[0]?.code    || '',
+        secondary_icd_codes:  JSON.stringify(icdCodes.slice(1)),
+        // Keep legacy field for backward compat
+        diagnosis_icd:        icdCodes[0]?.code    || form.diagnosis_icd || '',
       });
     }
   };
@@ -244,10 +267,10 @@ const ConsultationForm = ({
       <Section icon={Activity} title="Vital Signs" color="text-emerald-600" bg="bg-emerald-50 border-emerald-100">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            ['BP (mmHg)',       'vital_signs_bp',          'e.g., 120/80'],
-            ['Temp (°C)',       'vital_signs_temp',         '37.0'],
-            ['Pulse (bpm)',     'vital_signs_pulse',        '72'],
-            ['Respiration/min', 'vital_signs_respiration',  '16'],
+            ['BP (mmHg)',        'vital_signs_bp',          'e.g., 120/80'],
+            ['Temp (°C)',        'vital_signs_temp',         '37.0'],
+            ['Pulse (bpm)',      'vital_signs_pulse',        '72'],
+            ['Respiration/min',  'vital_signs_respiration',  '16'],
           ].map(([lbl, name, ph]) => (
             <F key={name} label={lbl}>
               <input name={name} value={form[name]} onChange={set} className={inp()} placeholder={ph} />
@@ -256,10 +279,8 @@ const ConsultationForm = ({
         </div>
       </Section>
 
-      {/* ── CDS Alert Panel — appears between vitals and diagnosis ── */}
-      {cdsAlerts.length > 0 && (
-        <CDSAlerts alerts={cdsAlerts} />
-      )}
+      {/* CDS Alert Panel */}
+      {cdsAlerts.length > 0 && <CDSAlerts alerts={cdsAlerts} />}
 
       <Section icon={Search} title="Physical Examination" color="text-amber-600" bg="bg-amber-50 border-amber-100">
         <F label="Findings">
@@ -268,14 +289,21 @@ const ConsultationForm = ({
       </Section>
 
       <Section icon={Stethoscope} title="Diagnosis & Treatment" color="text-rose-600" bg="bg-rose-50 border-rose-100">
-        <div className="grid grid-cols-2 gap-3">
-          <F label="Diagnosis *" error={errors.diagnosis}>
-            <input name="diagnosis" value={form.diagnosis} onChange={set} className={inp(!!errors.diagnosis)} placeholder="Primary diagnosis" />
-          </F>
-          <F label="ICD Code">
-            <input name="diagnosis_icd" value={form.diagnosis_icd} onChange={set} className={inp()} placeholder="e.g., J45.901" />
-          </F>
-        </div>
+
+        {/* Diagnosis text field */}
+        <F label="Diagnosis *" error={errors.diagnosis}>
+          <input name="diagnosis" value={form.diagnosis} onChange={set} className={inp(!!errors.diagnosis)} placeholder="Primary diagnosis description" />
+        </F>
+
+        {/* ICD-10 Picker — replaces old plain text icd code input */}
+        <ICD10Picker
+          selected={icdCodes}
+          onChange={setIcdCodes}
+          maxCodes={4}
+          label="ICD-10 Diagnosis Codes"
+          placeholder="Search ICD-10 code or diagnosis keyword…"
+        />
+
         <F label="Treatment Plan *" error={errors.treatment_plan}>
           <textarea name="treatment_plan" value={form.treatment_plan} onChange={set} rows={3} className={ta(!!errors.treatment_plan)} placeholder="Recommended treatment plan" />
         </F>
