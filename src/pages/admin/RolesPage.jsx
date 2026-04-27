@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import RoleForm from '../../components/admin/RoleForm';
 
-// \u2500\u2500 Level Badge \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+// ── Level Badge ───────────────────────────────────────────────────────────────
 const LevelBadge = ({ level }) => {
   const colors = [
     '', 'bg-red-100 text-red-700', 'bg-orange-100 text-orange-700',
@@ -26,7 +26,7 @@ const LevelBadge = ({ level }) => {
   );
 };
 
-// \u2500\u2500 Toast \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+// ── Toast ─────────────────────────────────────────────────────────────────────
 const Toast = ({ toast }) => {
   if (!toast) return null;
   return (
@@ -39,7 +39,7 @@ const Toast = ({ toast }) => {
   );
 };
 
-// \u2500\u2500 Delete Modal \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+// ── Delete Modal ──────────────────────────────────────────────────────────────
 const DeleteModal = ({ role, onConfirm, onCancel, loading }) => {
   if (!role) return null;
   return (
@@ -73,7 +73,7 @@ const DeleteModal = ({ role, onConfirm, onCancel, loading }) => {
   );
 };
 
-// \u2500\u2500 Users Panel \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+// ── Users Panel ───────────────────────────────────────────────────────────────
 const UsersPanel = ({ role, users, onClose }) => (
   <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
     <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50">
@@ -86,8 +86,7 @@ const UsersPanel = ({ role, users, onClose }) => (
           <p className="text-xs text-gray-400">{users.length} user{users.length !== 1 ? 's' : ''}</p>
         </div>
       </div>
-      <button onClick={onClose}
-        className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
+      <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
         <X className="w-4 h-4 text-gray-500" />
       </button>
     </div>
@@ -100,8 +99,7 @@ const UsersPanel = ({ role, users, onClose }) => (
       ) : (
         <div className="space-y-2">
           {users.map(user => (
-            <div key={user.user_id}
-              className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+            <div key={user.user_id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold">
                   {(user.full_name || user.username || '?').charAt(0).toUpperCase()}
@@ -126,7 +124,7 @@ const UsersPanel = ({ role, users, onClose }) => (
   </div>
 );
 
-// \u2500\u2500 Role Card \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+// ── Role Card ─────────────────────────────────────────────────────────────────
 const RoleCard = ({ role, onEdit, onDelete, onViewUsers }) => {
   const accentColors = [
     '', 'from-red-500 to-rose-600', 'from-orange-500 to-amber-600',
@@ -170,23 +168,24 @@ const RoleCard = ({ role, onEdit, onDelete, onViewUsers }) => {
   );
 };
 
-// \u2500\u2500 Main Component \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+// ── Main Component ────────────────────────────────────────────────────────────
 export default function RolesPage() {
-  const [showForm, setShowForm]         = useState(false);
-  const [editingRole, setEditingRole]   = useState(null);
-  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [showForm,      setShowForm]      = useState(false);
+  const [editingRole,   setEditingRole]   = useState(null);
+  const [deleteTarget,  setDeleteTarget]  = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
-  const [usersPanel, setUsersPanel]     = useState(null);
-  const [usersInRole, setUsersInRole]   = useState([]);
-  const [toast, setToast]               = useState(null);
-  const [error, setError]               = useState('');
+  const [usersPanel,    setUsersPanel]    = useState(null);
+  const [usersInRole,   setUsersInRole]   = useState([]);
+  const [toast,         setToast]         = useState(null);
+  const [error,         setError]         = useState('');
 
   const { roles, loading, fetchRoles, createRole, updateRole, deleteRole, getUsersWithRole } = useAdmin();
 
-  const showToast = (message, type = 'success') => {
+  // Stable showToast — won't cause re-render loops if used in effects
+  const showToast = useCallback((message, type = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3500);
-  };
+  }, []);
 
   const loadRoles = useCallback(async () => {
     try {
@@ -243,6 +242,8 @@ export default function RolesPage() {
     }
   };
 
+  const closeForm = () => { setShowForm(false); setEditingRole(null); };
+
   return (
     <div className="p-6 space-y-5">
       <Toast toast={toast} />
@@ -267,8 +268,7 @@ export default function RolesPage() {
           <button
             onClick={() => { setEditingRole(null); setShowForm(true); }}
             className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm">
-            <Plus className="w-4 h-4" />
-            Add Role
+            <Plus className="w-4 h-4" /> Add Role
           </button>
         </div>
       </div>
@@ -281,21 +281,24 @@ export default function RolesPage() {
         </div>
       )}
 
-      {/* Role Form */}
+      {/* Role Form — inline panel, key forces fresh mount on each open */}
       {showForm && (
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-50">
-            <h3 className="font-bold text-gray-800">{editingRole ? 'Edit Role' : 'Create New Role'}</h3>
-            <button onClick={() => { setShowForm(false); setEditingRole(null); }}
-              className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
+            <h3 className="font-bold text-gray-800">
+              {editingRole ? 'Edit Role' : 'Create New Role'}
+            </h3>
+            <button onClick={closeForm} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
               <X className="w-4 h-4 text-gray-500" />
             </button>
           </div>
           <div className="p-6">
+            {/* key prop ensures RoleForm remounts fresh on each open — fixes typing issue */}
             <RoleForm
+              key={editingRole?.role_id ?? 'new-role'}
               initialData={editingRole}
               onSubmit={handleSubmit}
-              onCancel={() => { setShowForm(false); setEditingRole(null); }}
+              onCancel={closeForm}
             />
           </div>
         </div>

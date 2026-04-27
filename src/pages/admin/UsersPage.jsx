@@ -1,355 +1,385 @@
 // ============================================
-// UsersPage - Professional User Management
+// UsersPage.jsx
 // File: frontend-web/src/pages/admin/UsersPage.jsx
 // ============================================
-
-import React, { useEffect, useState, useCallback } from 'react';
-import { useAdmin } from '../../hooks/useAdmin';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Trash2, Edit2, Plus, Search, RefreshCw, X,
-  UserCheck, UserX, Shield, AlertTriangle, ChevronDown,
-  Check, Loader,
+  Users, Plus, Search, RefreshCw,
+  Edit2, Trash2, X, Loader, User, Shield,
 } from 'lucide-react';
-import UserForm from '../../components/admin/UserForm';
+import api from '../../services/api.js';
+import UserForm from '../../components/admin/UserForm.jsx';
 
-// ── Role Badge ────────────────────────────────────────────────────────────────
-const RoleBadge = ({ role }) => {
-  const colors = {
-    admin:          'bg-purple-100 text-purple-700 border-purple-200',
-    doctor:         'bg-blue-100 text-blue-700 border-blue-200',
-    nurse:          'bg-teal-100 text-teal-700 border-teal-200',
-    pharmacist:     'bg-emerald-100 text-emerald-700 border-emerald-200',
-    lab_technician: 'bg-orange-100 text-orange-700 border-orange-200',
-    receptionist:   'bg-pink-100 text-pink-700 border-pink-200',
-    patient:        'bg-indigo-100 text-indigo-700 border-indigo-200',
-  };
-  const cls = colors[(role || '').toLowerCase()] || 'bg-gray-100 text-gray-600 border-gray-200';
-  return (
-    <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${cls} capitalize`}>
-      {role || 'N/A'}
-    </span>
-  );
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const formatPhone = (raw = '') => {
+  const d = raw.replace(/\D/g, '');
+  if (d.startsWith('234') && d.length >= 13)
+    return `+234-${d.slice(3,6)}-${d.slice(6,9)}-${d.slice(9)}`;
+  if (d.startsWith('0') && d.length === 11)
+    return `+234-${d.slice(1,4)}-${d.slice(4,7)}-${d.slice(7)}`;
+  return raw || '—';
 };
 
-// ── Status Badge ──────────────────────────────────────────────────────────────
-const StatusBadge = ({ active }) => (
-  <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
-    active
-      ? 'bg-green-50 text-green-700 border-green-200'
-      : 'bg-red-50 text-red-600 border-red-200'
-  }`}>
-    <span className={`w-1.5 h-1.5 rounded-full ${active ? 'bg-green-500' : 'bg-red-500'}`} />
-    {active ? 'Active' : 'Inactive'}
-  </span>
-);
-
-// ── Toast Notification ────────────────────────────────────────────────────────
-const Toast = ({ toast }) => {
-  if (!toast) return null;
-  return (
-    <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-xl text-white text-sm font-medium transition-all ${
-      toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'
-    }`}>
-      {toast.type === 'success' ? <Check className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
-      {toast.message}
-    </div>
-  );
+const friendlyError = (err) => {
+  const msg = err?.response?.data?.error || err?.message || 'Something went wrong';
+  if (msg.includes('UNIQUE constraint failed: users.email'))    return 'This email address is already registered.';
+  if (msg.includes('UNIQUE constraint failed: users.username')) return 'This username is already taken.';
+  if (msg.includes('UNIQUE constraint failed'))                 return 'A user with these details already exists.';
+  if (msg.includes('NOT NULL constraint'))                      return 'Please fill in all required fields.';
+  return msg;
 };
 
-// ── Delete Modal ──────────────────────────────────────────────────────────────
-const DeleteModal = ({ user, onConfirm, onCancel, loading }) => {
+const ROLE_COLORS = {
+  admin: 'bg-red-100 text-red-700', super_admin: 'bg-red-100 text-red-800',
+  doctor: 'bg-blue-100 text-blue-700', nurse: 'bg-teal-100 text-teal-700',
+  pharmacist: 'bg-purple-100 text-purple-700', lab_tech: 'bg-amber-100 text-amber-700',
+  receptionist: 'bg-green-100 text-green-700', manager: 'bg-orange-100 text-orange-700',
+  staff: 'bg-slate-100 text-slate-600', patient: 'bg-gray-100 text-gray-600',
+};
+const roleBadge = (role) =>
+  `inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize
+   ${ROLE_COLORS[role?.toLowerCase()] || 'bg-slate-100 text-slate-600'}`;
+
+const avatarBg = (name = '') => {
+  const c = ['bg-teal-500','bg-blue-500','bg-purple-500','bg-red-500','bg-amber-500','bg-green-500'];
+  return c[(name.charCodeAt(0) || 0) % c.length];
+};
+const initials = (name = '') => name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase() || '?';
+
+// ── Confirm delete modal ──────────────────────────────────────────────────────
+const DeleteModal = ({ user, onConfirm, onCancel, isLoading }) => {
   if (!user) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
-        <div className="h-1 bg-gradient-to-r from-red-400 to-rose-500" />
-        <div className="p-6 text-center">
-          <div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Trash2 className="w-7 h-7 text-red-500" />
-          </div>
-          <h3 className="text-lg font-bold text-gray-800 mb-1">Delete User?</h3>
-          <p className="text-sm text-gray-500 mb-1">
-            You're about to delete <span className="font-semibold text-gray-700">{user.full_name || user.username}</span>.
-          </p>
-          <p className="text-xs text-red-500 mb-6">This action cannot be undone.</p>
-          <div className="flex gap-3">
-            <button onClick={onCancel} disabled={loading}
-              className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-all disabled:opacity-50">
-              Cancel
-            </button>
-            <button onClick={onConfirm} disabled={loading}
-              className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-70">
-              {loading ? <Loader className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-              {loading ? 'Deleting...' : 'Delete'}
-            </button>
-          </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+         style={{ background: 'rgba(0,0,0,0.5)' }}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+        <div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <Shield className="w-7 h-7 text-red-500" />
+        </div>
+        <h3 className="text-lg font-bold text-slate-800 text-center mb-1">Delete User?</h3>
+        <p className="text-sm text-slate-500 text-center mb-6">
+          You are about to delete <span className="font-bold">{user.full_name}</span>. This cannot be undone.
+        </p>
+        <div className="flex gap-3">
+          <button onClick={onCancel}
+            className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-50">
+            Cancel
+          </button>
+          <button onClick={onConfirm} disabled={isLoading}
+            className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-50">
+            {isLoading ? <Loader className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+            {isLoading ? 'Deleting…' : 'Delete'}
+          </button>
         </div>
       </div>
     </div>
   );
 };
 
-// ── Main Component ────────────────────────────────────────────────────────────
+// ── Main page ─────────────────────────────────────────────────────────────────
 export default function UsersPage() {
-  const [showForm, setShowForm]           = useState(false);
-  const [editUser, setEditUser]           = useState(null);
-  const [deleteTarget, setDeleteTarget]   = useState(null);
-  const [deleteLoading, setDeleteLoading] = useState(false);
-  const [search, setSearch]               = useState('');
-  const [roleFilter, setRoleFilter]       = useState('all');
-  const [toast, setToast]                 = useState(null);
-  const [error, setError]                 = useState('');
+  const [users,        setUsers]       = useState([]);
+  const [roles,        setRoles]       = useState([]);
+  const [loading,      setLoading]     = useState(true);
+  const [search,       setSearch]      = useState('');
+  const [roleFilter,   setRoleFilter]  = useState('');
+  const [showCreate,   setShowCreate]  = useState(false);
+  const [editUser,     setEditUser]    = useState(null);
+  const [deleteUser,   setDeleteUser]  = useState(null);
+  const [submitting,   setSubmitting]  = useState(false);
+  const [createError,  setCreateError] = useState('');
+  const [editError,    setEditError]   = useState('');
+  const [toast,        setToast]       = useState(null);
 
-  const { users, loading, fetchUsers, createUser, updateUser, deleteUser } = useAdmin();
-
-  const showToast = (message, type = 'success') => {
-    setToast({ message, type });
+  const showToast = useCallback((msg, type = 'success') => {
+    setToast({ msg, type });
     setTimeout(() => setToast(null), 3500);
-  };
+  }, []);
 
-  const loadUsers = useCallback(async () => {
+  // Fetch users
+  const fetchUsers = useCallback(async () => {
+    setLoading(true);
     try {
-      setError('');
-      await fetchUsers();
+      const res = await api.get('/admin/users', { params: { limit: 200 } });
+      // Handle ALL possible response shapes from adminController
+      // Shape A: { users: [...] }           — CliniCore standard
+      // Shape B: { data: [...] }            — some controllers
+      // Shape C: { status:'success', data: [...] } — older pattern
+      // Shape D: [...]                      — raw array
+      const d = res.data;
+      const list = d?.users
+        || (Array.isArray(d?.data) ? d.data : null)
+        || (Array.isArray(d)       ? d       : null)
+        || [];
+      setUsers(list);
     } catch (err) {
-      setError(err?.response?.status === 403
-        ? 'You do not have permission to view users.'
-        : 'Failed to load users. Please refresh.');
+      showToast(friendlyError(err), 'error');
+    } finally {
+      setLoading(false);
     }
+  }, [showToast]);
+
+  // Fetch roles with static fallback
+  const fetchRoles = useCallback(async () => {
+    try {
+      const res = await api.get('/admin/roles');
+      const fetched = res.data.roles || [];
+      if (fetched.length > 0) { setRoles(fetched); return; }
+    } catch {}
+    setRoles([
+      { role_id: 1, role_name: 'admin',        description: 'Full system access' },
+      { role_id: 2, role_name: 'doctor',       description: 'Clinical staff' },
+      { role_id: 3, role_name: 'nurse',        description: 'Nursing staff' },
+      { role_id: 4, role_name: 'pharmacist',   description: 'Pharmacy staff' },
+      { role_id: 5, role_name: 'lab_tech',     description: 'Laboratory staff' },
+      { role_id: 6, role_name: 'receptionist', description: 'Front desk' },
+      { role_id: 7, role_name: 'patient',      description: 'Patient user' },
+    ]);
+  }, []);
+
+  useEffect(() => {
+    fetchUsers();
+    fetchRoles();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchUsers]);
 
-  useEffect(() => { loadUsers(); }, [loadUsers]);
+  // Create
+  const handleCreate = async (data) => {
+    setSubmitting(true);
+    setCreateError('');
+    try {
+      await api.post('/admin/users', data);
+      showToast('User created successfully');
+      setShowCreate(false);
+      setCreateError('');
+      await fetchUsers();  // await so table refreshes before spinner stops
+    } catch (err) {
+      const msg = friendlyError(err);
+      setCreateError(msg);
+      showToast(msg, 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-  // ── Filtered users ──
-  const filtered = (users || []).filter(u => {
+  // Edit
+  const handleEdit = async (data) => {
+    setSubmitting(true);
+    setEditError('');
+    try {
+      await api.put(`/admin/users/${editUser.user_id}`, data);
+      showToast('User updated successfully');
+      setEditUser(null);
+      setEditError('');
+      await fetchUsers();
+    } catch (err) {
+      const msg = friendlyError(err);
+      setEditError(msg);
+      showToast(msg, 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Delete
+  const handleDelete = async () => {
+    setSubmitting(true);
+    try {
+      await api.delete(`/admin/users/${deleteUser.user_id}`);
+      showToast('User deleted');
+      setDeleteUser(null);
+      await fetchUsers();
+    } catch (err) {
+      showToast(friendlyError(err), 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const filtered = users.filter(u => {
+    const q = search.toLowerCase();
     const matchSearch = !search ||
-      u.full_name?.toLowerCase().includes(search.toLowerCase()) ||
-      u.email?.toLowerCase().includes(search.toLowerCase()) ||
-      u.username?.toLowerCase().includes(search.toLowerCase());
-    const matchRole = roleFilter === 'all' || u.role?.toLowerCase() === roleFilter;
+      u.full_name?.toLowerCase().includes(q) ||
+      u.email?.toLowerCase().includes(q) ||
+      u.username?.toLowerCase().includes(q);
+    const matchRole = !roleFilter || u.role?.toLowerCase() === roleFilter;
     return matchSearch && matchRole;
   });
 
-  // ── Create/Update ──
-  const handleSubmit = async (data) => {
-    try {
-      if (editUser) {
-        await updateUser(editUser.user_id, data);
-        showToast(`${data.full_name || 'User'} updated successfully`);
-      } else {
-        await createUser(data);
-        showToast(`${data.full_name || 'User'} created successfully`);
-      }
-      setShowForm(false);
-      setEditUser(null);
-      loadUsers();
-    } catch (err) {
-      showToast(err?.response?.data?.error || 'Operation failed. Please try again.', 'error');
-    }
-  };
-
-  // ── Delete ──
-  const handleDeleteConfirm = async () => {
-    setDeleteLoading(true);
-    try {
-      await deleteUser(deleteTarget.user_id);
-      showToast(`${deleteTarget.full_name || 'User'} deleted successfully`);
-      setDeleteTarget(null);
-      loadUsers();
-    } catch (err) {
-      showToast(err?.response?.data?.error || 'Failed to delete user.', 'error');
-      setDeleteTarget(null);
-    } finally {
-      setDeleteLoading(false);
-    }
-  };
-
-  const roles = ['all', 'admin', 'doctor', 'nurse', 'pharmacist', 'lab_technician', 'receptionist', 'patient'];
+  const sel = `px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 bg-slate-50
+    focus:border-teal-400 focus:ring-2 focus:ring-teal-100 outline-none appearance-none cursor-pointer`;
 
   return (
     <div className="p-6 space-y-5">
-      <Toast toast={toast} />
+      {/* Toast */}
+      {toast && (
+        <div className={`fixed bottom-6 right-6 z-50 px-5 py-3 rounded-2xl shadow-xl text-sm font-semibold text-white
+          ${toast.type === 'error' ? 'bg-red-500' : 'bg-green-600'}`}>
+          {toast.msg}
+        </div>
+      )}
 
-      <DeleteModal
-        user={deleteTarget}
-        onConfirm={handleDeleteConfirm}
-        onCancel={() => setDeleteTarget(null)}
-        loading={deleteLoading}
-      />
-
-      {/* ── Header ── */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Users Management</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            {filtered.length} of {users?.length || 0} users
-          </p>
+          <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+            <Users className="w-6 h-6 text-blue-500" /> Users Management
+          </h1>
+          <p className="text-sm text-slate-500 mt-0.5">{filtered.length} of {users.length} users</p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={loadUsers}
-            className="p-2.5 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 transition-all"
-            title="Refresh">
+          <button onClick={fetchUsers}
+            className="p-2.5 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50">
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
-          <button
-            onClick={() => { setEditUser(null); setShowForm(true); }}
-            className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm shadow-purple-200"
-          >
-            <Plus className="w-4 h-4" />
-            Add User
+          <button onClick={() => { setShowCreate(true); setCreateError(''); }}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold shadow-sm">
+            <Plus className="w-4 h-4" /> Add User
           </button>
         </div>
       </div>
 
-      {/* ── Error ── */}
-      {error && (
-        <div className="flex items-center gap-3 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
-          <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0" />
-          <p className="text-sm text-red-700">{error}</p>
-        </div>
-      )}
-
-      {/* ── User Form ── */}
-      {showForm && (
-        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-50">
-            <h3 className="font-bold text-gray-800">{editUser ? 'Edit User' : 'Create New User'}</h3>
-            <button onClick={() => { setShowForm(false); setEditUser(null); }}
-              className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
-              <X className="w-4 h-4 text-gray-500" />
+      {/* Create form — inline panel, key forces fresh UserForm on each open */}
+      {showCreate && (
+        <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-50">
+            <h3 className="font-bold text-slate-800">Create New User</h3>
+            <button onClick={() => { setShowCreate(false); setCreateError(''); }}
+              className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400">
+              <X className="w-4 h-4" />
             </button>
           </div>
           <div className="p-6">
             <UserForm
-              initialData={editUser}
-              onSubmit={handleSubmit}
-              onCancel={() => { setShowForm(false); setEditUser(null); }}
+              key="create"
+              roles={roles}
+              onSubmit={handleCreate}
+              onCancel={() => { setShowCreate(false); setCreateError(''); }}
+              isLoading={submitting}
+              serverError={createError}
             />
           </div>
         </div>
       )}
 
-      {/* ── Filters ── */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search by name, email or username..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-50"
-          />
-          {search && (
-            <button onClick={() => setSearch('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-              <X className="w-3.5 h-3.5" />
+      {/* Edit form — inline panel */}
+      {editUser && (
+        <div className="bg-white border border-blue-100 rounded-2xl shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-50">
+            <h3 className="font-bold text-slate-800">Edit User: {editUser.full_name}</h3>
+            <button onClick={() => { setEditUser(null); setEditError(''); }}
+              className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400">
+              <X className="w-4 h-4" />
             </button>
-          )}
+          </div>
+          <div className="p-6">
+            <UserForm
+              key={editUser.user_id}
+              initialData={editUser}
+              roles={roles}
+              onSubmit={handleEdit}
+              onCancel={() => { setEditUser(null); setEditError(''); }}
+              isLoading={submitting}
+              serverError={editError}
+            />
+          </div>
         </div>
-        <div className="relative">
-          <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <select
-            value={roleFilter}
-            onChange={e => setRoleFilter(e.target.value)}
-            className="pl-9 pr-8 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-purple-400 bg-white appearance-none cursor-pointer"
-          >
-            {roles.map(r => (
-              <option key={r} value={r}>{r === 'all' ? 'All Roles' : r.replace('_', ' ')}</option>
-            ))}
-          </select>
-          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+      )}
+
+      {/* Search + filter */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+          <input type="text" placeholder="Search by name, email or username…"
+            value={search} onChange={e => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl
+              focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-100 transition-all" />
         </div>
+        <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)} className={sel}>
+          <option value="">All Roles</option>
+          {roles.map(r => {
+            const name = r.role_name || r.name || '';
+            return <option key={r.role_id || name} value={name.toLowerCase()}>{name}</option>;
+          })}
+        </select>
       </div>
 
-      {/* ── Table ── */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      {/* Table */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <div className="text-center">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600" />
-              <p className="mt-3 text-sm text-gray-500">Loading users...</p>
-            </div>
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="py-16 text-center">
-            <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-              <UserX className="w-7 h-7 text-gray-400" />
-            </div>
-            <p className="text-gray-500 font-medium">No users found</p>
-            <p className="text-gray-400 text-sm mt-1">
-              {search || roleFilter !== 'all' ? 'Try adjusting your filters' : 'Add the first user to get started'}
-            </p>
+          <div className="flex items-center justify-center h-64">
+            <div className="w-10 h-10 rounded-full animate-spin"
+              style={{ border: '3px solid #e2e8f0', borderTopColor: '#3b82f6' }} />
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-gray-50 border-b border-gray-100">
-                  <th className="px-5 py-3.5 text-left text-xs font-bold text-gray-500 uppercase tracking-wide">User</th>
-                  <th className="px-5 py-3.5 text-left text-xs font-bold text-gray-500 uppercase tracking-wide">Email</th>
-                  <th className="px-5 py-3.5 text-left text-xs font-bold text-gray-500 uppercase tracking-wide">Role</th>
-                  <th className="px-5 py-3.5 text-left text-xs font-bold text-gray-500 uppercase tracking-wide">Status</th>
-                  <th className="px-5 py-3.5 text-left text-xs font-bold text-gray-500 uppercase tracking-wide">Phone</th>
-                  <th className="px-5 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wide">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {filtered.map(user => (
-                  <tr key={user.user_id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                          {(user.full_name || user.username || '?').charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-gray-800">{user.full_name || '—'}</p>
-                          <p className="text-xs text-gray-400">@{user.username}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4 text-sm text-gray-600">{user.email}</td>
-                    <td className="px-5 py-4"><RoleBadge role={user.role} /></td>
-                    <td className="px-5 py-4"><StatusBadge active={user.is_active} /></td>
-                    <td className="px-5 py-4 text-sm text-gray-500">{user.phone || '—'}</td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => { setEditUser(user); setShowForm(true); }}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => setDeleteTarget(user)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 border-b border-slate-100">
+              <tr>
+                {['User','Email','Role','Status','Phone','Actions'].map(h => (
+                  <th key={h} className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">{h}</th>
                 ))}
-              </tbody>
-            </table>
-
-            {/* Table footer */}
-            <div className="px-5 py-3 border-t border-gray-50 bg-gray-50/50 flex items-center justify-between">
-              <p className="text-xs text-gray-400">
-                Showing {filtered.length} of {users?.length || 0} users
-              </p>
-              <div className="flex items-center gap-1.5">
-                <UserCheck className="w-3.5 h-3.5 text-green-500" />
-                <p className="text-xs text-gray-400">
-                  {users?.filter(u => u.is_active).length || 0} active
-                </p>
-              </div>
-            </div>
-          </div>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(u => (
+                <tr key={u.user_id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-9 h-9 ${avatarBg(u.full_name)} rounded-xl flex items-center justify-center flex-shrink-0`}>
+                        <span className="text-xs font-bold text-white">{initials(u.full_name)}</span>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-slate-800">{u.full_name}</p>
+                        <p className="text-xs text-slate-400">@{u.username}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-slate-600">{u.email}</td>
+                  <td className="px-4 py-3">
+                    <span className={roleBadge(u.role)}>{u.role}</span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold
+                      ${u.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${u.is_active ? 'bg-green-500' : 'bg-red-500'}`} />
+                      {u.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-slate-500 font-mono text-xs">{formatPhone(u.phone)}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1.5">
+                      <button onClick={() => { setEditUser(u); setEditError(''); }}
+                        className="flex items-center gap-1 text-xs font-semibold text-blue-600 px-2.5 py-1.5 rounded-lg hover:bg-blue-50 transition-all">
+                        <Edit2 className="w-3.5 h-3.5" /> Edit
+                      </button>
+                      <button onClick={() => setDeleteUser(u)}
+                        className="flex items-center gap-1 text-xs font-semibold text-red-500 px-2.5 py-1.5 rounded-lg hover:bg-red-50 transition-all">
+                        <Trash2 className="w-3.5 h-3.5" /> Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="text-center py-12 text-slate-400">
+                    <User className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">No users found</p>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         )}
       </div>
+
+      {/* Delete modal */}
+      <DeleteModal
+        user={deleteUser}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteUser(null)}
+        isLoading={submitting}
+      />
     </div>
   );
 }

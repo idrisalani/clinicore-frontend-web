@@ -161,7 +161,7 @@ export default function LoginPage() {
             <span className="text-2xl font-black text-white tracking-tight">CliniCore</span>
           </div>
         </div>
-
+        <br />
         <div className="relative z-10">
           <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 text-cyan-300 px-4 py-2 rounded-full text-xs font-semibold mb-8">
             <span className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse" />
@@ -195,7 +195,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <div className="relative z-10 bg-white/8 backdrop-blur-sm border border-white/15 rounded-2xl p-5">
+        {/* <div className="relative z-10 bg-white/8 backdrop-blur-sm border border-white/15 rounded-2xl p-5">
           <div className="flex gap-1 mb-3">
             {[...Array(5)].map((_, i) => (
               <svg key={i} className="w-3.5 h-3.5 fill-amber-400" viewBox="0 0 20 20">
@@ -213,7 +213,7 @@ export default function LoginPage() {
               <p className="text-slate-500 text-[10px]">Lagos Medical Center</p>
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
 
       {/* ── Right Panel — Form ── */}

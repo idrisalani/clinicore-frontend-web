@@ -2,6 +2,16 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronUp, ChevronDown, Eye, Edit2, Trash2, User } from 'lucide-react';
 
+const formatPhone = (raw = '') => {
+  if (!raw) return '—';
+  const d = raw.replace(/\D/g, '');
+  if (d.startsWith('234') && d.length >= 13)
+    return `+234-${d.slice(3,6)}-${d.slice(6,9)}-${d.slice(9)}`;
+  if (d.startsWith('0') && d.length === 11)
+    return `+234-${d.slice(1,4)}-${d.slice(4,7)}-${d.slice(7)}`;
+  return raw;
+};
+
 const Spinner = () => (
   <div className="flex items-center justify-center h-64">
     <div className="w-10 h-10 border-3 border-teal-500 border-t-transparent rounded-full animate-spin" style={{borderWidth:3}} />
@@ -78,7 +88,7 @@ const PatientTable = ({
                   </div>
                 </div>
               </td>
-              <td className="px-5 py-4 text-sm font-medium text-slate-700">{pt.phone}</td>
+              <td className="px-5 py-4 text-sm font-medium text-slate-700">{formatPhone(pt.phone)}</td>
               <td className="px-5 py-4">
                 <span className="inline-flex items-center px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-full">{age(pt.date_of_birth)}</span>
               </td>

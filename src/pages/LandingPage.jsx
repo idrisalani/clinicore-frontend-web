@@ -72,29 +72,29 @@ const LandingPage = () => {
     { value: '₦', label: 'Naira Native', icon: <Star className="w-5 h-5" /> },
   ];
 
-  const testimonials = [
-    {
-      quote: 'CliniCore has completely transformed how we manage our clinic. Patient records are organized, appointments run smoothly, and billing is automated.',
-      name: 'Dr. Chioma Nwosu',
-      title: 'Lagos Medical Center',
-      color: 'bg-blue-100 text-blue-800',
-      initial: 'C',
-    },
-    {
-      quote: 'The pharmacy integration and prescription tracking have been game-changers. Our medication management is now efficient and error-free.',
-      name: 'Pharm. Tunde Adeyemi',
-      title: 'Abuja Health Clinic',
-      color: 'bg-purple-100 text-purple-800',
-      initial: 'T',
-    },
-    {
-      quote: 'The billing system is straightforward and the Nigerian Naira support is perfect for our operations. An exceptional healthcare platform.',
-      name: 'Dr. Oluwaseun Oladele',
-      title: 'Port Harcourt Medical',
-      color: 'bg-emerald-100 text-emerald-800',
-      initial: 'O',
-    },
-  ];
+  // const testimonials = [
+  //   {
+  //     quote: 'CliniCore has completely transformed how we manage our clinic. Patient records are organized, appointments run smoothly, and billing is automated.',
+  //     name: 'Dr. Chioma Nwosu',
+  //     title: 'Lagos Medical Center',
+  //     color: 'bg-blue-100 text-blue-800',
+  //     initial: 'C',
+  //   },
+  //   {
+  //     quote: 'The pharmacy integration and prescription tracking have been game-changers. Our medication management is now efficient and error-free.',
+  //     name: 'Pharm. Tunde Adeyemi',
+  //     title: 'Abuja Health Clinic',
+  //     color: 'bg-purple-100 text-purple-800',
+  //     initial: 'T',
+  //   },
+  //   {
+  //     quote: 'The billing system is straightforward and the Nigerian Naira support is perfect for our operations. An exceptional healthcare platform.',
+  //     name: 'Dr. Oluwaseun Oladele',
+  //     title: 'Port Harcourt Medical',
+  //     color: 'bg-emerald-100 text-emerald-800',
+  //     initial: 'O',
+  //   },
+  // ];
 
   return (
     <div className="min-h-screen bg-white" style={{ fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
@@ -408,7 +408,7 @@ const LandingPage = () => {
       </section>
 
       {/* ── Testimonials ── */}
-      <section id="testimonials" className="py-24 px-6 bg-gray-50">
+      {/*<section id="testimonials" className="py-24 px-6 bg-gray-50">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <span className="inline-block bg-purple-100 text-purple-700 text-xs font-bold px-4 py-2 rounded-full uppercase tracking-widest mb-4">
@@ -442,7 +442,7 @@ const LandingPage = () => {
             ))}
           </div>
         </div>
-      </section>
+      </section>*/}
 
       {/* ── CTA ── */}
       <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 py-24 px-6">
@@ -455,9 +455,9 @@ const LandingPage = () => {
               Your Clinic?
             </span>
           </h2>
-          <p className="text-xl text-slate-400 mb-10">
+          {/* <p className="text-xl text-slate-400 mb-10">
             Join healthcare professionals across Nigeria using CliniCore
-          </p>
+          </p> */}
           <div className="flex gap-4 justify-center flex-wrap">
             <Link to="/login"
               className="inline-flex items-center gap-2.5 bg-gradient-to-r from-cyan-500 to-sky-500 hover:from-cyan-400 hover:to-sky-400 text-white px-8 py-4 rounded-2xl font-bold shadow-xl shadow-cyan-900/30 transition-all hover:-translate-y-0.5">
