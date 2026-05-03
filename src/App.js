@@ -1,58 +1,69 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import PrivateRoute from './components/PrivateRoute';
-import Sidebar from './components/Sidebar';
-import RoleGuard from './components/RoleGuard';
+import React, { useState, useEffect } from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import PrivateRoute from "./components/PrivateRoute";
+import Sidebar from "./components/Sidebar";
+import RoleGuard from "./components/RoleGuard";
 
 // Public
-import LandingPage from './pages/LandingPage';
-import LoginPage from './pages/LoginPage';
+import LandingPage from "./pages/LandingPage";
+import LoginPage from "./pages/LoginPage";
 // Core modules
-import DashboardPage from './pages/DashboardPage';
-import PatientsPage from './pages/PatientsPage';
-import PatientDetailPage from './pages/PatientDetailPage';
-import AppointmentsPage from './pages/AppointmentsPage';
-import ConsultationsPage from './pages/ConsultationsPage';
-import LabPage from './pages/LabPage';
-import PharmacyPage from './pages/PharmacyPage';
-import BillingPage from './pages/BillingPage';
-import QueuePage from './pages/QueuePage';
-import FinancialReportsPage from './pages/FinancialReportsPage';
-import DrugExpiryPage from './pages/DrugExpiryPage';
-import MaternityPage from './pages/MaternityPage';
-import TelemedicinePage from './pages/TelemedicinePage';
-import SymptomCheckerPage from './pages/SymptomCheckerPage';
-import ImagingPage from './pages/ImagingPage';
-import BedManagementPage from './pages/BedManagementPage';
-import SupplyChainPage from './pages/SupplyChainPage';
-import StaffSchedulingPage from './pages/StaffSchedulingPage';
+import DashboardPage from "./pages/DashboardPage";
+import PatientsPage from "./pages/PatientsPage";
+import PatientDetailPage from "./pages/PatientDetailPage";
+import AppointmentsPage from "./pages/AppointmentsPage";
+import ConsultationsPage from "./pages/ConsultationsPage";
+import LabPage from "./pages/LabPage";
+import PharmacyPage from "./pages/PharmacyPage";
+import BillingPage from "./pages/BillingPage";
+import QueuePage from "./pages/QueuePage";
+import FinancialReportsPage from "./pages/FinancialReportsPage";
+import DrugExpiryPage from "./pages/DrugExpiryPage";
+import MaternityPage from "./pages/MaternityPage";
+import TelemedicinePage from "./pages/TelemedicinePage";
+import SymptomCheckerPage from "./pages/SymptomCheckerPage";
+import ImagingPage from "./pages/ImagingPage";
+import BedManagementPage from "./pages/BedManagementPage";
+import SupplyChainPage from "./pages/SupplyChainPage";
+import StaffSchedulingPage from "./pages/StaffSchedulingPage";
+import NurseVitalsPage from "./pages/NurseVitalsPage";
+import DoctorConsultationPage from "./pages/DoctorConsultationPage";
+import LabWorkflowPage from "./pages/LabWorkflowPage";
+import PharmacyWorkflowPage from "./pages/PharmacyWorkflowPage";
 
 // Patient Portal
-import PatientPortalPage  from './pages/PatientPortalPage';
-import PatientProfilePage from './pages/PatientProfilePage';
+import PatientPortalPage from "./pages/PatientPortalPage";
+import PatientProfilePage from "./pages/PatientProfilePage";
+import PatientTimelinePage from "./pages/PatientTimelinePage";
 
 // Admin pages
-import AdminDashboard from './pages/admin/AdminDashboard';
-import UsersPage from './pages/admin/UsersPage';
-import RolesPage from './pages/admin/RolesPage';
-import PermissionsPage from './pages/admin/PermissionsPage';
-import ActivityLogsPage from './pages/admin/ActivityLogsPage';
-import SettingsPage from './pages/admin/SettingsPage';
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import UsersPage from "./pages/admin/UsersPage";
+import RolesPage from "./pages/admin/RolesPage";
+import PermissionsPage from "./pages/admin/PermissionsPage";
+import ActivityLogsPage from "./pages/admin/ActivityLogsPage";
+import SettingsPage from "./pages/admin/SettingsPage";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 const readStoredUser = () => {
   try {
-    const stored = localStorage.getItem('clinicore_user');
-    if (!stored || stored === 'null' || stored === 'undefined') return { role: '', name: '' };
+    const stored = localStorage.getItem("clinicore_user");
+    if (!stored || stored === "null" || stored === "undefined")
+      return { role: "", name: "" };
     const u = JSON.parse(stored);
     const userData = u?.user || u;
     return {
-      role: userData?.role || userData?.role_name || '',
-      name: userData?.full_name || userData?.name || userData?.username || '',
+      role: userData?.role || userData?.role_name || "",
+      name: userData?.full_name || userData?.name || userData?.username || "",
     };
   } catch {
-    return { role: '', name: '' };
+    return { role: "", name: "" };
   }
 };
 
@@ -64,11 +75,11 @@ const AppLayout = ({ children }) => {
   useEffect(() => {
     setUserData(readStoredUser());
     const refresh = () => setUserData(readStoredUser());
-    window.addEventListener('storage', refresh);
-    window.addEventListener('clinicore_user_saved', refresh);
+    window.addEventListener("storage", refresh);
+    window.addEventListener("clinicore_user_saved", refresh);
     return () => {
-      window.removeEventListener('storage', refresh);
-      window.removeEventListener('clinicore_user_saved', refresh);
+      window.removeEventListener("storage", refresh);
+      window.removeEventListener("clinicore_user_saved", refresh);
     };
   }, []);
 
@@ -91,9 +102,7 @@ const Protected = ({ children }) => (
 const AdminOnly = ({ children }) => (
   <PrivateRoute>
     <AppLayout>
-      <RoleGuard allowedRoles={['admin']}>
-        {children}
-      </RoleGuard>
+      <RoleGuard allowedRoles={["admin"]}>{children}</RoleGuard>
     </AppLayout>
   </PrivateRoute>
 );
@@ -104,46 +113,267 @@ function App() {
   return (
     <Router>
       <Routes>
-
         {/* PUBLIC */}
-        <Route path="/"      element={<LandingPage />} />
+        <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
 
         {/* CORE MODULES */}
-        <Route path="/dashboard"       element={<Protected><DashboardPage /></Protected>} />
-        <Route path="/patients"        element={<Protected><PatientsPage /></Protected>} />
-        <Route path="/patients/:id"    element={<Protected><PatientDetailPage /></Protected>} />
-        <Route path="/appointments"    element={<Protected><AppointmentsPage /></Protected>} />
-        <Route path="/consultations"   element={<Protected><ConsultationsPage /></Protected>} />
-        <Route path="/lab"             element={<Protected><LabPage /></Protected>} />
-        <Route path="/pharmacy"        element={<Protected><PharmacyPage /></Protected>} />
-        <Route path="/billing"         element={<Protected><BillingPage /></Protected>} />
-        <Route path="/queue"           element={<Protected><QueuePage /></Protected>} />
-        <Route path="/reports"         element={<Protected><FinancialReportsPage /></Protected>} />
-        <Route path="/drug-expiry"     element={<Protected><DrugExpiryPage /></Protected>} />
-        <Route path="/maternity"       element={<Protected><MaternityPage /></Protected>} />
-        <Route path="/telemedicine"    element={<Protected><TelemedicinePage /></Protected>} />
-        <Route path="/symptom-checker" element={<Protected><SymptomCheckerPage /></Protected>} />
-        <Route path="/imaging"         element={<Protected><ImagingPage /></Protected>} />
-        <Route path="/beds"            element={<Protected><BedManagementPage /></Protected>} />
-        <Route path="/supply-chain"    element={<Protected><SupplyChainPage /></Protected>} />
-        <Route path="/scheduling"      element={<Protected><StaffSchedulingPage /></Protected>} />
+        <Route
+          path="/dashboard"
+          element={
+            <Protected>
+              <DashboardPage />
+            </Protected>
+          }
+        />
+        <Route
+          path="/patients"
+          element={
+            <Protected>
+              <PatientsPage />
+            </Protected>
+          }
+        />
+        <Route
+          path="/patients/:id"
+          element={
+            <Protected>
+              <PatientDetailPage />
+            </Protected>
+          }
+        />
+        <Route
+          path="/appointments"
+          element={
+            <Protected>
+              <AppointmentsPage />
+            </Protected>
+          }
+        />
+        <Route
+          path="/consultations"
+          element={
+            <Protected>
+              <ConsultationsPage />
+            </Protected>
+          }
+        />
+        <Route
+          path="/lab"
+          element={
+            <Protected>
+              <LabPage />
+            </Protected>
+          }
+        />
+        <Route
+          path="/pharmacy"
+          element={
+            <Protected>
+              <PharmacyPage />
+            </Protected>
+          }
+        />
+        <Route
+          path="/billing"
+          element={
+            <Protected>
+              <BillingPage />
+            </Protected>
+          }
+        />
+        <Route
+          path="/queue"
+          element={
+            <Protected>
+              <QueuePage />
+            </Protected>
+          }
+        />
+        <Route
+          path="/reports"
+          element={
+            <Protected>
+              <FinancialReportsPage />
+            </Protected>
+          }
+        />
+        <Route
+          path="/drug-expiry"
+          element={
+            <Protected>
+              <DrugExpiryPage />
+            </Protected>
+          }
+        />
+        <Route
+          path="/maternity"
+          element={
+            <Protected>
+              <MaternityPage />
+            </Protected>
+          }
+        />
+        <Route
+          path="/telemedicine"
+          element={
+            <Protected>
+              <TelemedicinePage />
+            </Protected>
+          }
+        />
+        <Route
+          path="/symptom-checker"
+          element={
+            <Protected>
+              <SymptomCheckerPage />
+            </Protected>
+          }
+        />
+        <Route
+          path="/imaging"
+          element={
+            <Protected>
+              <ImagingPage />
+            </Protected>
+          }
+        />
+        <Route
+          path="/beds"
+          element={
+            <Protected>
+              <BedManagementPage />
+            </Protected>
+          }
+        />
+        <Route
+          path="/supply-chain"
+          element={
+            <Protected>
+              <SupplyChainPage />
+            </Protected>
+          }
+        />
+        <Route
+          path="/scheduling"
+          element={
+            <Protected>
+              <StaffSchedulingPage />
+            </Protected>
+          }
+        />
+
+        <Route
+          path="/nurse/vitals/:visitId"
+          element={
+            <Protected>
+              <NurseVitalsPage />
+            </Protected>
+          }
+        />
+        <Route
+          path="/doctor/consultation/:visitId"
+          element={
+            <Protected>
+              <DoctorConsultationPage />
+            </Protected>
+          }
+        />
+        <Route
+          path="/lab/workflow"
+          element={
+            <Protected>
+              <LabWorkflowPage />
+            </Protected>
+          }
+        />
+        <Route
+          path="/pharmacy/workflow"
+          element={
+            <Protected>
+              <PharmacyWorkflowPage />
+            </Protected>
+          }
+        />
 
         {/* PATIENT PORTAL */}
-        <Route path="/portal"         element={<Protected><PatientPortalPage /></Protected>} />
-        <Route path="/portal/profile" element={<Protected><PatientProfilePage /></Protected>} />
+        <Route
+          path="/portal"
+          element={
+            <Protected>
+              <PatientPortalPage />
+            </Protected>
+          }
+        />
+        <Route
+          path="/portal/profile"
+          element={
+            <Protected>
+              <PatientProfilePage />
+            </Protected>
+          }
+        />
+        <Route
+          path="/patients/:id/timeline"
+          element={
+            <Protected>
+              <PatientTimelinePage />
+            </Protected>
+          }
+        />
 
         {/* ADMIN ROUTES */}
-        <Route path="/admin"             element={<AdminOnly><AdminDashboard /></AdminOnly>} />
-        <Route path="/admin/users"       element={<AdminOnly><UsersPage /></AdminOnly>} />
-        <Route path="/admin/roles"       element={<AdminOnly><RolesPage /></AdminOnly>} />
-        <Route path="/admin/permissions" element={<AdminOnly><PermissionsPage /></AdminOnly>} />
-        <Route path="/admin/activity"    element={<AdminOnly><ActivityLogsPage /></AdminOnly>} />
-        <Route path="/admin/settings"    element={<AdminOnly><SettingsPage /></AdminOnly>} />
+        <Route
+          path="/admin"
+          element={
+            <AdminOnly>
+              <AdminDashboard />
+            </AdminOnly>
+          }
+        />
+        <Route
+          path="/admin/users"
+          element={
+            <AdminOnly>
+              <UsersPage />
+            </AdminOnly>
+          }
+        />
+        <Route
+          path="/admin/roles"
+          element={
+            <AdminOnly>
+              <RolesPage />
+            </AdminOnly>
+          }
+        />
+        <Route
+          path="/admin/permissions"
+          element={
+            <AdminOnly>
+              <PermissionsPage />
+            </AdminOnly>
+          }
+        />
+        <Route
+          path="/admin/activity"
+          element={
+            <AdminOnly>
+              <ActivityLogsPage />
+            </AdminOnly>
+          }
+        />
+        <Route
+          path="/admin/settings"
+          element={
+            <AdminOnly>
+              <SettingsPage />
+            </AdminOnly>
+          }
+        />
 
         {/* CATCH-ALL */}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
-
       </Routes>
     </Router>
   );

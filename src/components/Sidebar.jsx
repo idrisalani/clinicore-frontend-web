@@ -4,7 +4,8 @@ import {
   Menu, X, Home, Users, Calendar, FileText, Beaker, Pill,
   CreditCard, LogOut, ChevronDown, Shield, Settings, AlertTriangle,
   UserCog, ClipboardList, HeartPulse, FlaskConical, ScanLine,
-  Stethoscope, Receipt, BarChart3, User, Heart, Activity, Video, Thermometer, BedDouble, Truck, CalendarDays
+  Stethoscope, Receipt, BarChart3, User, Heart, Activity, Video,
+  Thermometer, BedDouble, Truck, CalendarDays, TestTube, Package,
 } from 'lucide-react';
 import LogoutModal from './LogoutModal';
 
@@ -40,6 +41,7 @@ const NAV_CONFIG = {
       { icon: CalendarDays,  label: 'Staff Scheduling', path: '/scheduling'        },
     ],
   },
+
   doctor: {
     label: 'Doctor Portal',
     color: 'from-blue-900 to-blue-800',
@@ -59,10 +61,11 @@ const NAV_CONFIG = {
       { icon: BarChart3,     label: 'Fin. Reports',     path: '/reports'       },
       { icon: Video,         label: 'Telemedicine',     path: '/telemedicine'  },
       { icon: ScanLine,      label: 'Medical Imaging',  path: '/imaging'       },
-      { icon: BedDouble,     label: 'Bed Management',   path: '/beds'          }, 
-      { icon: CalendarDays,  label: 'Staff Scheduling', path: '/scheduling'    }, 
+      { icon: BedDouble,     label: 'Bed Management',   path: '/beds'          },
+      { icon: CalendarDays,  label: 'Staff Scheduling', path: '/scheduling'    },
     ],
   },
+
   nurse: {
     label: 'Nurse Station',
     color: 'from-teal-900 to-teal-800',
@@ -73,14 +76,17 @@ const NAV_CONFIG = {
       { icon: Home,          label: 'Dashboard',      path: '/dashboard'     },
       { icon: Users,         label: 'Patients',       path: '/patients'      },
       { icon: Calendar,      label: 'Appointments',   path: '/appointments'  },
-      { icon: Users,         label: 'Queue',          path: '/queue'         },
-      { icon: HeartPulse,    label: 'Vitals',         path: '/consultations' },
+      { icon: Users,         label: 'Patient Queue',  path: '/queue'         },
+      // Vitals page opens from queue card — no sidebar link needed
+      { icon: HeartPulse,    label: 'Consultations',  path: '/consultations' },
       { icon: Heart,         label: 'Maternity',      path: '/maternity'     },
       { icon: FlaskConical,  label: 'Lab Results',    path: '/lab'           },
       { icon: Pill,          label: 'Medications',    path: '/pharmacy'      },
       { icon: BedDouble,     label: 'Bed Management', path: '/beds'          },
     ],
   },
+
+  // ── PHARMACIST — added Dispensing Queue ──────────────────────────────────────
   pharmacist: {
     label: 'Pharmacy Portal',
     color: 'from-emerald-900 to-emerald-800',
@@ -88,15 +94,18 @@ const NAV_CONFIG = {
     badge: 'PHARMACIST',
     badgeColor: 'bg-emerald-500',
     items: [
-      { icon: Home,          label: 'Dashboard',      path: '/dashboard'      },
-      { icon: Pill,          label: 'Prescriptions',  path: '/pharmacy'       },
-      { icon: ClipboardList, label: 'Drug Inventory', path: '/pharmacy'       },
-      { icon: AlertTriangle, label: 'Drug Expiry',    path: '/drug-expiry'    },
-      { icon: Users,         label: 'Patients',       path: '/patients'       },
-      { icon: Receipt,       label: 'Billing',        path: '/billing'        },
-      { icon: Truck,         label: 'Supply Chain',   path: '/supply-chain'   },
+      { icon: Home,          label: 'Dashboard',         path: '/dashboard'         },
+      { icon: Package,       label: 'Dispensing Queue',  path: '/pharmacy/workflow' }, // ← NEW
+      { icon: Pill,          label: 'Prescriptions',     path: '/pharmacy'          },
+      { icon: ClipboardList, label: 'Drug Inventory',    path: '/pharmacy'          },
+      { icon: AlertTriangle, label: 'Drug Expiry',       path: '/drug-expiry'       },
+      { icon: Users,         label: 'Patients',          path: '/patients'          },
+      { icon: Receipt,       label: 'Billing',           path: '/billing'           },
+      { icon: Truck,         label: 'Supply Chain',      path: '/supply-chain'      },
     ],
   },
+
+  // ── LAB TECHNICIAN — added Lab Workflow ──────────────────────────────────────
   lab_technician: {
     label: 'Lab Portal',
     color: 'from-orange-900 to-orange-800',
@@ -104,12 +113,30 @@ const NAV_CONFIG = {
     badge: 'LAB TECH',
     badgeColor: 'bg-orange-500',
     items: [
-      { icon: Home,          label: 'Dashboard', path: '/dashboard' },
-      { icon: FlaskConical,  label: 'Lab Tests', path: '/lab'       },
-      { icon: ClipboardList, label: 'Results',   path: '/lab'       },
-      { icon: Users,         label: 'Patients',  path: '/patients'  },
+      { icon: Home,          label: 'Dashboard',     path: '/dashboard'    },
+      { icon: TestTube,      label: 'Lab Workflow',  path: '/lab/workflow' }, // ← NEW
+      { icon: FlaskConical,  label: 'All Orders',    path: '/lab'          },
+      { icon: ClipboardList, label: 'Results',       path: '/lab'          },
+      { icon: Users,         label: 'Patients',      path: '/patients'     },
     ],
   },
+
+  // ── Also handle 'lab_tech' alias (backend uses this) ─────────────────────────
+  lab_tech: {
+    label: 'Lab Portal',
+    color: 'from-orange-900 to-orange-800',
+    accent: 'bg-orange-500',
+    badge: 'LAB TECH',
+    badgeColor: 'bg-orange-500',
+    items: [
+      { icon: Home,          label: 'Dashboard',     path: '/dashboard'    },
+      { icon: TestTube,      label: 'Lab Workflow',  path: '/lab/workflow' },
+      { icon: FlaskConical,  label: 'All Orders',    path: '/lab'          },
+      { icon: ClipboardList, label: 'Results',       path: '/lab'          },
+      { icon: Users,         label: 'Patients',      path: '/patients'     },
+    ],
+  },
+
   receptionist: {
     label: 'Reception',
     color: 'from-pink-900 to-pink-800',
@@ -125,7 +152,6 @@ const NAV_CONFIG = {
     ],
   },
 
-  // ── PATIENT — updated with portal routes ────────────────────────────────────
   patient: {
     label: 'My Health Portal',
     color: 'from-teal-900 to-teal-800',
@@ -141,6 +167,37 @@ const NAV_CONFIG = {
       { icon: Receipt,      label: 'My Bills',        path: '/billing'         },
       { icon: User,         label: 'My Profile',      path: '/portal/profile'  },
       { icon: Thermometer,  label: 'Symptom Checker', path: '/symptom-checker' },
+    ],
+  },
+
+  // ── Finance role (new from Phase C) ──────────────────────────────────────────
+  finance: {
+    label: 'Finance Portal',
+    color: 'from-green-900 to-green-800',
+    accent: 'bg-green-500',
+    badge: 'FINANCE',
+    badgeColor: 'bg-green-500',
+    items: [
+      { icon: Home,      label: 'Dashboard',    path: '/dashboard' },
+      { icon: CreditCard,label: 'Billing',      path: '/billing'   },
+      { icon: BarChart3, label: 'Fin. Reports', path: '/reports'   },
+      { icon: Users,     label: 'Patients',     path: '/patients'  },
+      { icon: Receipt,   label: 'Invoices',     path: '/billing'   },
+    ],
+  },
+
+  // ── Staff fallback ────────────────────────────────────────────────────────────
+  staff: {
+    label: 'Staff Portal',
+    color: 'from-gray-900 to-gray-800',
+    accent: 'bg-gray-600',
+    badge: 'STAFF',
+    badgeColor: 'bg-gray-500',
+    items: [
+      { icon: Home,     label: 'Dashboard',    path: '/dashboard'    },
+      { icon: Users,    label: 'Patients',     path: '/patients'     },
+      { icon: Calendar, label: 'Appointments', path: '/appointments' },
+      { icon: Users,    label: 'Queue',        path: '/queue'        },
     ],
   },
 };
@@ -167,10 +224,10 @@ const Sidebar = ({ userRole, userName }) => {
   const role   = (userRole || '').toLowerCase().replace(/\s+/g, '_');
   const config = NAV_CONFIG[role] || DEFAULT_NAV;
 
-  // Active check: exact match OR prefix match for nested portal routes
+  // Active check: exact for /portal, prefix for everything else
   const isActive = (path) =>
     path === '/portal'
-      ? location.pathname === '/portal'             // exact — avoid matching /portal/profile
+      ? location.pathname === '/portal'
       : location.pathname === path || location.pathname.startsWith(path + '/');
 
   const handleLogoutConfirm = () => {
