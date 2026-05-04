@@ -243,8 +243,17 @@ const PatientDetailPage = () => {
           {!latestVitals ? (
             <div className="text-center py-8 text-gray-400">
               <Activity className="w-10 h-10 mx-auto mb-2 opacity-30"/>
-              <p className="text-sm">No vitals recorded yet</p>
-              <p className="text-xs mt-1">Vitals are recorded by the nurse during check-in</p>
+              <p className="text-sm font-medium text-gray-500">No vitals recorded yet</p>
+              <p className="text-xs mt-1 text-gray-400">
+                Vitals are recorded by the nurse after the patient checks in via the Queue.
+              </p>
+              <button
+                onClick={() => navigate('/queue')}
+                className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 text-xs font-semibold rounded-lg hover:bg-blue-100 transition-colors border border-blue-200"
+              >
+                <Activity className="w-3.5 h-3.5" />
+                Go to Queue to check in patient
+              </button>
             </div>
           ) : (
             <>

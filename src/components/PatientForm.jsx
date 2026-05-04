@@ -218,7 +218,7 @@ const EMPTY_VITALS = {
 };
 
 // ── Step 1: Bio data (Receptionist) ──────────────────────────────────────────
-const BioDataStep = ({ form, set, errors }) => (
+const BioDataStep = ({ form, set, errors, isEdit }) => (
   <div className="space-y-5">
     <Section icon={User} title="Personal Information" color="teal">
       <div className="grid grid-cols-2 gap-3">
@@ -243,11 +243,13 @@ const BioDataStep = ({ form, set, errors }) => (
             <option>Male</option><option>Female</option><option>Other</option>
           </Select>
         </F>
-        <F label="Chief Complaint *" error={errors.chief_complaint} span2>
-          <Input name="chief_complaint" value={form.chief_complaint} onChange={set}
-            placeholder="Main reason for visit e.g. Fever, Chest pain, Follow-up"
-            error={errors.chief_complaint}/>
-        </F>
+        {!isEdit && (
+          <F label="Chief Complaint *" error={errors.chief_complaint} span2>
+            <Input name="chief_complaint" value={form.chief_complaint} onChange={set}
+              placeholder="Main reason for visit e.g. Fever, Chest pain, Follow-up"
+              error={errors.chief_complaint}/>
+          </F>
+        )}
       </div>
     </Section>
 
@@ -448,6 +450,7 @@ const VitalsStep = ({ vitals, setVital, patientName }) => {
 
 // ── Main component ─────────────────────────────────────────────────────────────
 const PatientForm = ({ patient = null, isLoading: externalLoading = false, onSubmit, onCancel, mode = 'add' }) => {
+  const isEdit = mode === 'edit';                    // derived once — used throughout
   const [step,               setStep]               = useState(1);
   const [form,               setForm]               = useState({ ...EMPTY_PATIENT });
   const [vitals,             setVitals]             = useState({ ...EMPTY_VITALS });
@@ -485,7 +488,7 @@ const PatientForm = ({ patient = null, isLoading: externalLoading = false, onSub
     if (!form.last_name.trim())     errs.last_name     = 'Required';
     if (!form.phone.trim())         errs.phone         = 'Required';
     if (!form.date_of_birth)        errs.date_of_birth = 'Required';
-    if (!form.chief_complaint?.trim()) errs.chief_complaint = 'Required';
+    if (!isEdit && !form.chief_complaint?.trim()) errs.chief_complaint = 'Required';
     if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
       errs.email = 'Invalid email format';
     setErrors(errs);
@@ -554,7 +557,7 @@ const PatientForm = ({ patient = null, isLoading: externalLoading = false, onSub
         )}
 
         {step === 1
-          ? <BioDataStep form={form} set={set} errors={errors}/>
+          ? <BioDataStep form={form} set={set} errors={errors} isEdit={isEdit}/>
           : <VitalsStep  vitals={vitals} setVital={setVital} patientName={patientName}/>
         }
 
