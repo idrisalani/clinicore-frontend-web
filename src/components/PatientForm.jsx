@@ -528,8 +528,20 @@ const PatientForm = ({ patient = null, isLoading: externalLoading = false, onSub
         if (onSubmit) onSubmit(form, response);
       }
     } catch (err) {
-      const msg = err.response?.data?.error || 'Failed to create patient';
-      setErrors({ general: msg });
+      const status = err.response?.status;
+      const data   = err.response?.data;
+      if (status === 409) {
+        // Patient already exists — offer to view them
+        const pid = data?.patient_id;
+        setErrors({
+          general: pid
+            ? `This patient is already registered. Click below to view their record.`
+            : (data?.error || 'A patient with this email already exists.'),
+          existingPatientId: pid || null,
+        });
+      } else {
+        setErrors({ general: data?.error || err.message || 'Failed to create patient' });
+      }
     } finally {
       setSubmitting(false);
     }
@@ -550,9 +562,19 @@ const PatientForm = ({ patient = null, isLoading: externalLoading = false, onSub
 
         {/* General error */}
         {errors.general && (
-          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700 flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 flex-shrink-0"/>
-            {errors.general}
+          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5"/>
+              <span>{errors.general}</span>
+            </div>
+            {errors.existingPatientId && (
+              <a
+                href={`/patients/${errors.existingPatientId}`}
+                className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:underline"
+              >
+                → View existing patient record
+              </a>
+            )}
           </div>
         )}
 

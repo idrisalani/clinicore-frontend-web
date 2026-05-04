@@ -297,6 +297,17 @@ const CheckInForm = ({ onSubmit, onCancel, isLoading }) => {
           </div>
         )}
 
+        {!selected && search.length > 0 && results.length === 0 && !searching && (
+          <p className="text-xs text-amber-600 mt-1 font-medium">
+            ⚠️ No patient found — try name or phone number
+          </p>
+        )}
+        {!selected && search.length === 0 && (
+          <p className="text-xs text-slate-400 mt-1">
+            Type at least 2 characters, then select a patient from the list
+          </p>
+        )}
+
         {selected && (
           <div className="mt-2 flex items-center gap-3 bg-teal-50 border border-teal-200 rounded-xl px-4 py-2.5">
             <div className="w-8 h-8 bg-teal-600 rounded-lg flex items-center justify-center text-white text-xs font-bold">
@@ -395,11 +406,14 @@ const QueuePage = () => {
     try {
       setIsSubmitting(true);
       const result = await checkInPatient(formData);
-      showToast(`Patient checked in — Queue #${String(result.queue_number || '').padStart(2,'0')}`);
+      const num = String(result?.queue_number || result?.entry?.queue_number || '').padStart(2,'0');
+      showToast(`Patient checked in${num ? ` — Queue #${num}` : ''}`);
       setShowCheckIn(false);
-      fetchQueue();
+      await fetchQueue();
     } catch (err) {
-      showToast(err?.response?.data?.error || 'Failed to check in patient.', 'error');
+      const msg = err?.response?.data?.error || err?.message || 'Failed to check in patient';
+      showToast(msg, 'error');
+      // Keep modal open so user can retry
     } finally {
       setIsSubmitting(false);
     }
