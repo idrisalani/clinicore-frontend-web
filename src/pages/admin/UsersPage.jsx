@@ -12,7 +12,8 @@ import UserForm from '../../components/admin/UserForm.jsx';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const formatPhone = (raw = '') => {
-  const d = raw.replace(/\D/g, '');
+  if (!raw) return '—';                          // ← FIX: guard null/undefined
+  const d = String(raw).replace(/\D/g, '');      // ← FIX: coerce to string first
   if (d.startsWith('234') && d.length >= 13)
     return `+234-${d.slice(3,6)}-${d.slice(6,9)}-${d.slice(9)}`;
   if (d.startsWith('0') && d.length === 11)
@@ -22,6 +23,7 @@ const formatPhone = (raw = '') => {
 
 const friendlyError = (err) => {
   const msg = err?.response?.data?.error || err?.message || 'Something went wrong';
+  if (!msg || typeof msg !== 'string') return 'Something went wrong'; // ← FIX: guard null msg
   if (msg.includes('UNIQUE constraint failed: users.email'))    return 'This email address is already registered.';
   if (msg.includes('UNIQUE constraint failed: users.username')) return 'This username is already taken.';
   if (msg.includes('UNIQUE constraint failed'))                 return 'A user with these details already exists.';
@@ -30,23 +32,31 @@ const friendlyError = (err) => {
 };
 
 const ROLE_COLORS = {
-  admin: 'bg-red-100 text-red-700', super_admin: 'bg-red-100 text-red-800',
-  doctor: 'bg-blue-100 text-blue-700', nurse: 'bg-teal-100 text-teal-700',
-  pharmacist: 'bg-purple-100 text-purple-700', lab_tech: 'bg-amber-100 text-amber-700',
-  receptionist: 'bg-green-100 text-green-700', manager: 'bg-orange-100 text-orange-700',
-  staff: 'bg-slate-100 text-slate-600', patient: 'bg-gray-100 text-gray-600',
+  admin:        'bg-red-100 text-red-700',
+  super_admin:  'bg-red-100 text-red-800',
+  doctor:       'bg-blue-100 text-blue-700',
+  nurse:        'bg-teal-100 text-teal-700',
+  pharmacist:   'bg-purple-100 text-purple-700',
+  lab_tech:     'bg-amber-100 text-amber-700',
+  receptionist: 'bg-green-100 text-green-700',
+  manager:      'bg-orange-100 text-orange-700',
+  staff:        'bg-slate-100 text-slate-600',
+  patient:      'bg-gray-100 text-gray-600',
 };
+
 const roleBadge = (role) =>
   `inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize
    ${ROLE_COLORS[role?.toLowerCase()] || 'bg-slate-100 text-slate-600'}`;
 
 const avatarBg = (name = '') => {
   const c = ['bg-teal-500','bg-blue-500','bg-purple-500','bg-red-500','bg-amber-500','bg-green-500'];
-  return c[(name.charCodeAt(0) || 0) % c.length];
+  return c[((name || '').charCodeAt(0) || 0) % c.length]; // ← FIX: guard empty name
 };
-const initials = (name = '') => name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase() || '?';
 
-// ── Confirm delete modal ──────────────────────────────────────────────────────
+const initials = (name = '') =>
+  (name || '').split(' ').map(w => w[0]).filter(Boolean).join('').slice(0,2).toUpperCase() || '?';
+
+// ── Delete modal ──────────────────────────────────────────────────────────────
 const DeleteModal = ({ user, onConfirm, onCancel, isLoading }) => {
   if (!user) return null;
   return (
@@ -78,34 +88,29 @@ const DeleteModal = ({ user, onConfirm, onCancel, isLoading }) => {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function UsersPage() {
-  const [users,        setUsers]       = useState([]);
-  const [roles,        setRoles]       = useState([]);
-  const [loading,      setLoading]     = useState(true);
-  const [search,       setSearch]      = useState('');
-  const [roleFilter,   setRoleFilter]  = useState('');
-  const [showCreate,   setShowCreate]  = useState(false);
-  const [editUser,     setEditUser]    = useState(null);
-  const [deleteUser,   setDeleteUser]  = useState(null);
-  const [submitting,   setSubmitting]  = useState(false);
-  const [createError,  setCreateError] = useState('');
-  const [editError,    setEditError]   = useState('');
-  const [toast,        setToast]       = useState(null);
+  const [users,       setUsers]       = useState([]);
+  const [roles,       setRoles]       = useState([]);
+  const [loading,     setLoading]     = useState(true);
+  const [search,      setSearch]      = useState('');
+  const [roleFilter,  setRoleFilter]  = useState('');
+  const [showCreate,  setShowCreate]  = useState(false);
+  const [editUser,    setEditUser]    = useState(null);
+  const [deleteUser,  setDeleteUser]  = useState(null);
+  const [submitting,  setSubmitting]  = useState(false);
+  const [createError, setCreateError] = useState('');
+  const [editError,   setEditError]   = useState('');
+  const [toast,       setToast]       = useState(null);
 
   const showToast = useCallback((msg, type = 'success') => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3500);
   }, []);
 
-  // Fetch users
+  // ── Fetch users ─────────────────────────────────────────────────────────────
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
       const res = await api.get('/admin/users', { params: { limit: 200 } });
-      // Handle ALL possible response shapes from adminController
-      // Shape A: { users: [...] }           — CliniCore standard
-      // Shape B: { data: [...] }            — some controllers
-      // Shape C: { status:'success', data: [...] } — older pattern
-      // Shape D: [...]                      — raw array
       const d = res.data;
       const list = d?.users
         || (Array.isArray(d?.data) ? d.data : null)
@@ -119,7 +124,7 @@ export default function UsersPage() {
     }
   }, [showToast]);
 
-  // Fetch roles with static fallback
+  // ── Fetch roles with static fallback ────────────────────────────────────────
   const fetchRoles = useCallback(async () => {
     try {
       const res = await api.get('/admin/roles');
@@ -133,7 +138,8 @@ export default function UsersPage() {
       { role_id: 4, role_name: 'pharmacist',   description: 'Pharmacy staff' },
       { role_id: 5, role_name: 'lab_tech',     description: 'Laboratory staff' },
       { role_id: 6, role_name: 'receptionist', description: 'Front desk' },
-      { role_id: 7, role_name: 'patient',      description: 'Patient user' },
+      { role_id: 7, role_name: 'staff',        description: 'Support staff' },
+      { role_id: 8, role_name: 'patient',      description: 'Patient user' },
     ]);
   }, []);
 
@@ -143,7 +149,7 @@ export default function UsersPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchUsers]);
 
-  // Create
+  // ── CRUD handlers ────────────────────────────────────────────────────────────
   const handleCreate = async (data) => {
     setSubmitting(true);
     setCreateError('');
@@ -152,7 +158,7 @@ export default function UsersPage() {
       showToast('User created successfully');
       setShowCreate(false);
       setCreateError('');
-      await fetchUsers();  // await so table refreshes before spinner stops
+      await fetchUsers();
     } catch (err) {
       const msg = friendlyError(err);
       setCreateError(msg);
@@ -162,7 +168,6 @@ export default function UsersPage() {
     }
   };
 
-  // Edit
   const handleEdit = async (data) => {
     setSubmitting(true);
     setEditError('');
@@ -181,7 +186,6 @@ export default function UsersPage() {
     }
   };
 
-  // Delete
   const handleDelete = async () => {
     setSubmitting(true);
     try {
@@ -196,6 +200,7 @@ export default function UsersPage() {
     }
   };
 
+  // ── Filter ───────────────────────────────────────────────────────────────────
   const filtered = users.filter(u => {
     const q = search.toLowerCase();
     const matchSearch = !search ||
@@ -211,6 +216,7 @@ export default function UsersPage() {
 
   return (
     <div className="p-6 space-y-5">
+
       {/* Toast */}
       {toast && (
         <div className={`fixed bottom-6 right-6 z-50 px-5 py-3 rounded-2xl shadow-xl text-sm font-semibold text-white
@@ -239,7 +245,7 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {/* Create form — inline panel, key forces fresh UserForm on each open */}
+      {/* Create form */}
       {showCreate && (
         <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
           <div className="flex items-center justify-between px-6 py-4 border-b border-slate-50">
@@ -262,7 +268,7 @@ export default function UsersPage() {
         </div>
       )}
 
-      {/* Edit form — inline panel */}
+      {/* Edit form */}
       {editUser && (
         <div className="bg-white border border-blue-100 rounded-2xl shadow-sm overflow-hidden">
           <div className="flex items-center justify-between px-6 py-4 border-b border-slate-50">
@@ -323,21 +329,29 @@ export default function UsersPage() {
             <tbody>
               {filtered.map(u => (
                 <tr key={u.user_id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+
+                  {/* User */}
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <div className={`w-9 h-9 ${avatarBg(u.full_name)} rounded-xl flex items-center justify-center flex-shrink-0`}>
                         <span className="text-xs font-bold text-white">{initials(u.full_name)}</span>
                       </div>
                       <div>
-                        <p className="font-semibold text-slate-800">{u.full_name}</p>
-                        <p className="text-xs text-slate-400">@{u.username}</p>
+                        <p className="font-semibold text-slate-800">{u.full_name || '—'}</p>
+                        <p className="text-xs text-slate-400">@{u.username || '—'}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-slate-600">{u.email}</td>
+
+                  {/* Email */}
+                  <td className="px-4 py-3 text-slate-600">{u.email || '—'}</td>
+
+                  {/* Role */}
                   <td className="px-4 py-3">
-                    <span className={roleBadge(u.role)}>{u.role}</span>
+                    <span className={roleBadge(u.role)}>{u.role || '—'}</span>
                   </td>
+
+                  {/* Status */}
                   <td className="px-4 py-3">
                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold
                       ${u.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
@@ -345,7 +359,13 @@ export default function UsersPage() {
                       {u.is_active ? 'Active' : 'Inactive'}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-slate-500 font-mono text-xs">{formatPhone(u.phone)}</td>
+
+                  {/* Phone */}
+                  <td className="px-4 py-3 text-slate-500 font-mono text-xs">
+                    {formatPhone(u.phone)}
+                  </td>
+
+                  {/* Actions */}
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5">
                       <button onClick={() => { setEditUser(u); setEditError(''); }}
@@ -360,6 +380,7 @@ export default function UsersPage() {
                   </td>
                 </tr>
               ))}
+
               {filtered.length === 0 && (
                 <tr>
                   <td colSpan={6} className="text-center py-12 text-slate-400">
